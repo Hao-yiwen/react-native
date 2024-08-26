@@ -223,6 +223,8 @@ const RNTesterApp = ({
   const activeExampleList =
     screen === Screens.COMPONENTS ? examplesList.components : examplesList.apis;
 
+  // debugger;
+
   return (
     <RNTesterThemeContext.Provider value={theme}>
       <RNTTitleBar

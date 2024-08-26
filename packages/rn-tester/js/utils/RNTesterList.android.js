@@ -10,11 +10,17 @@
 
 'use strict';
 
+import {category} from '../examples/Button/ButtonExample';
 import type {RNTesterModuleInfo} from '../types/RNTesterTypes';
 
 import ReactNativeFeatureFlags from 'react-native/Libraries/ReactNative/ReactNativeFeatureFlags';
 
 const Components: Array<RNTesterModuleInfo> = [
+  {
+    key: 'hywTest',
+    category: 'UI',
+    module: require('../examples/hyw/index'),
+  },
   {
     key: 'DrawerLayoutAndroid',
     category: 'UI',

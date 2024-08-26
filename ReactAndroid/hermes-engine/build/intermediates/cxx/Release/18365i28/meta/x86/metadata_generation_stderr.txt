@@ -1,0 +1,2 @@
+CMake Error: The source directory "/Users/yw.hao/Documents/android/react-native/sdks/hermes" does not exist.
+Specify --help for usage, or press the help button on the CMake GUI.

@@ -1,0 +1,19 @@
+Executable : null
+arguments : 
+--build-system
+cmake
+--platform
+android
+--abi
+x86
+--os-version
+21
+--stl
+c++_shared
+--ndk-version
+21
+--output
+/Users/yw.hao/Documents/android/react-native/ReactAndroid/.cxx/Debug/4j335ph5/prefab/x86/prefab-configure
+/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/intermediates/prefab_package_configuration/debug/prefab
+jvmArgs : 
+

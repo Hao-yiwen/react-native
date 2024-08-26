@@ -122,6 +122,7 @@ const AppRegistry = {
         appParameters.initialProps?.concurrentRoot ||
           appParameters.concurrentRoot,
       );
+      // debugger;
       renderApplication(
         componentProviderInstrumentationHook(
           componentProvider,

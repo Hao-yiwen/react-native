@@ -1,0 +1,170 @@
+[
+  {
+    "level_": 0,
+    "message_": "Start JSON generation. Platform version: 21 min SDK version: x86",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 517690472
+  },
+  {
+    "level_": 0,
+    "message_": "rebuilding JSON /Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/x86/android_gradle_build.json due to:",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 1702889809
+  },
+  {
+    "level_": 0,
+    "message_": "- expected json /Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/x86/android_gradle_build.json file is not present, will remove stale json folder",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -1054730617
+  },
+  {
+    "level_": 0,
+    "message_": "- missing previous command file /Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/x86/metadata_generation_command.txt, will remove stale json folder",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -1081800155
+  },
+  {
+    "level_": 0,
+    "message_": "- command changed from previous, will remove stale json folder",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -1316147196
+  },
+  {
+    "level_": 0,
+    "message_": "- prefab configuration has changed",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 2126247783
+  },
+  {
+    "level_": 0,
+    "message_": "Executable : null\narguments : \n--build-system\ncmake\n--platform\nandroid\n--abi\nx86\n--os-version\n21\n--stl\nc++_shared\n--ndk-version\n21\n--output\n/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/prefab/x86/prefab-configure\n/Users/yw.hao/.gradle/caches/transforms-3/5fef279603b2c7ec98cdde7b65ce4a9d/transformed/fbjni-0.2.2/prefab\njvmArgs : \n\n",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 1699193754
+  },
+  {
+    "level_": 0,
+    "message_": "removing stale contents from \u0027/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/x86\u0027",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 79827104
+  },
+  {
+    "level_": 0,
+    "message_": "created folder \u0027/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/x86\u0027",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -1657568084
+  },
+  {
+    "level_": 0,
+    "message_": "executing cmake Executable : /Users/yw.hao/Library/Android/sdk/cmake/3.18.1/bin/cmake\narguments : \n-H/Users/yw.hao/Documents/android/react-native/sdks/hermes\n-DCMAKE_SYSTEM_NAME\u003dAndroid\n-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\n-DCMAKE_SYSTEM_VERSION\u003d21\n-DANDROID_PLATFORM\u003dandroid-21\n-DANDROID_ABI\u003dx86\n-DCMAKE_ANDROID_ARCH_ABI\u003dx86\n-DANDROID_NDK\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529\n-DCMAKE_ANDROID_NDK\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529\n-DCMAKE_TOOLCHAIN_FILE\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529/build/cmake/android.toolchain.cmake\n-DCMAKE_MAKE_PROGRAM\u003d/Users/yw.hao/Library/Android/sdk/cmake/3.18.1/bin/ninja\n-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/intermediates/cxx/Release/18365i28/obj/x86\n-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/intermediates/cxx/Release/18365i28/obj/x86\n-DCMAKE_FIND_ROOT_PATH\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/prefab/x86/prefab\n-B/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/x86\n-GNinja\n-DHERMES_IS_ANDROID\u003dTrue\n-DANDROID_STL\u003dc++_shared\n-DANDROID_PIE\u003dTrue\n-DANDROID_LD\u003dlld\n-DIMPORT_HERMESC\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/hermes/ImportHermesc.cmake\n-DJSI_DIR\u003d/Users/yw.hao/Documents/android/react-native/ReactCommon/jsi\n-DHERMES_SLOW_DEBUG\u003dFalse\n-DHERMES_BUILD_SHARED_JSI\u003dTrue\n-DHERMES_RELEASE_VERSION\u003dfor RN 0.70.1\n-DHERMES_ENABLE_INTL\u003dTrue\n-DCMAKE_BUILD_TYPE\u003dRelease\njvmArgs : \n\n",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 989526409
+  },
+  {
+    "level_": 0,
+    "message_": "Executable : /Users/yw.hao/Library/Android/sdk/cmake/3.18.1/bin/cmake\narguments : \n-H/Users/yw.hao/Documents/android/react-native/sdks/hermes\n-DCMAKE_SYSTEM_NAME\u003dAndroid\n-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\n-DCMAKE_SYSTEM_VERSION\u003d21\n-DANDROID_PLATFORM\u003dandroid-21\n-DANDROID_ABI\u003dx86\n-DCMAKE_ANDROID_ARCH_ABI\u003dx86\n-DANDROID_NDK\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529\n-DCMAKE_ANDROID_NDK\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529\n-DCMAKE_TOOLCHAIN_FILE\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529/build/cmake/android.toolchain.cmake\n-DCMAKE_MAKE_PROGRAM\u003d/Users/yw.hao/Library/Android/sdk/cmake/3.18.1/bin/ninja\n-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/intermediates/cxx/Release/18365i28/obj/x86\n-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/intermediates/cxx/Release/18365i28/obj/x86\n-DCMAKE_FIND_ROOT_PATH\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/prefab/x86/prefab\n-B/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/x86\n-GNinja\n-DHERMES_IS_ANDROID\u003dTrue\n-DANDROID_STL\u003dc++_shared\n-DANDROID_PIE\u003dTrue\n-DANDROID_LD\u003dlld\n-DIMPORT_HERMESC\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/hermes/ImportHermesc.cmake\n-DJSI_DIR\u003d/Users/yw.hao/Documents/android/react-native/ReactCommon/jsi\n-DHERMES_SLOW_DEBUG\u003dFalse\n-DHERMES_BUILD_SHARED_JSI\u003dTrue\n-DHERMES_RELEASE_VERSION\u003dfor RN 0.70.1\n-DHERMES_ENABLE_INTL\u003dTrue\n-DCMAKE_BUILD_TYPE\u003dRelease\njvmArgs : \n\n",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -173498198
+  },
+  {
+    "level_": 0,
+    "message_": "JSON generation completed with problem. Exception: Build command failed.\nError while executing process /Users/yw.hao/Library/Android/sdk/cmake/3.18.1/bin/cmake with arguments {-H/Users/yw.hao/Documents/android/react-native/sdks/hermes -DCMAKE_SYSTEM_NAME\u003dAndroid -DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON -DCMAKE_SYSTEM_VERSION\u003d21 -DANDROID_PLATFORM\u003dandroid-21 -DANDROID_ABI\u003dx86 -DCMAKE_ANDROID_ARCH_ABI\u003dx86 -DANDROID_NDK\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529 -DCMAKE_ANDROID_NDK\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529 -DCMAKE_TOOLCHAIN_FILE\u003d/Users/yw.hao/Library/Android/sdk/ndk/21.4.7075529/build/cmake/android.toolchain.cmake -DCMAKE_MAKE_PROGRAM\u003d/Users/yw.hao/Library/Android/sdk/cmake/3.18.1/bin/ninja -DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/intermediates/cxx/Release/18365i28/obj/x86 -DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/intermediates/cxx/Release/18365i28/obj/x86 -DCMAKE_FIND_ROOT_PATH\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/prefab/x86/prefab -B/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/x86 -GNinja -DHERMES_IS_ANDROID\u003dTrue -DANDROID_STL\u003dc++_shared -DANDROID_PIE\u003dTrue -DANDROID_LD\u003dlld -DIMPORT_HERMESC\u003d/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/build/hermes/ImportHermesc.cmake -DJSI_DIR\u003d/Users/yw.hao/Documents/android/react-native/ReactCommon/jsi -DHERMES_SLOW_DEBUG\u003dFalse -DHERMES_BUILD_SHARED_JSI\u003dTrue -DHERMES_RELEASE_VERSION\u003dfor RN 0.70.1 -DHERMES_ENABLE_INTL\u003dTrue -DCMAKE_BUILD_TYPE\u003dRelease}\n\nCMake Error: The source directory \"/Users/yw.hao/Documents/android/react-native/sdks/hermes\" does not exist.\nSpecify --help for usage, or press the help button on the CMake GUI.\n",
+    "file_": "/Users/yw.hao/Documents/android/react-native/sdks/hermes/CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {},
+      "fieldsDescending": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": -474267124
+  }
+]

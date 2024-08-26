@@ -1,0 +1,19 @@
+Executable : null
+arguments : 
+--build-system
+cmake
+--platform
+android
+--abi
+x86
+--os-version
+21
+--stl
+c++_shared
+--ndk-version
+21
+--output
+/Users/yw.hao/Documents/android/react-native/ReactAndroid/hermes-engine/.cxx/Release/18365i28/prefab/x86/prefab-configure
+/Users/yw.hao/.gradle/caches/transforms-3/5fef279603b2c7ec98cdde7b65ce4a9d/transformed/fbjni-0.2.2/prefab
+jvmArgs : 
+

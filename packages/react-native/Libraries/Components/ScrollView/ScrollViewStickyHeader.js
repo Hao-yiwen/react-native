@@ -19,7 +19,7 @@ import * as React from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 export type Props = $ReadOnly<{
-  children?: React.Element<$FlowFixMe>,
+  children?: ExactReactElement_DEPRECATED<$FlowFixMe>,
   nextHeaderLayoutY: ?number,
   onLayout: (event: LayoutEvent) => void,
   scrollAnimatedValue: Animated.Value,
@@ -38,10 +38,10 @@ type Instance = {
   ...
 };
 
-const ScrollViewStickyHeaderWithForwardedRef: React.AbstractComponent<
-  Props,
-  Instance,
-> = React.forwardRef(function ScrollViewStickyHeader(props, forwardedRef) {
+const ScrollViewStickyHeaderWithForwardedRef: component(
+  ref: React.RefSetter<Instance>,
+  ...props: Props
+) = React.forwardRef(function ScrollViewStickyHeader(props, forwardedRef) {
   const {
     inverted,
     scrollViewHeight,

@@ -151,6 +151,11 @@ public abstract class ReactContext extends ContextWrapper {
   public abstract <T extends NativeModule> T getNativeModule(Class<T> nativeModuleInterface);
 
   /**
+   * @return the instance of the specified module interface associated with this ReactContext.
+   */
+  public abstract @Nullable NativeModule getNativeModule(String moduleName);
+
+  /**
    * Calls RCTDeviceEventEmitter.emit to JavaScript, with given event name and an optional list of
    * arguments.
    */
@@ -258,6 +263,19 @@ public abstract class ReactContext extends ContextWrapper {
       }
     }
     ReactMarker.logMarker(ReactMarkerConstants.ON_HOST_RESUME_END);
+  }
+
+  @ThreadConfined(UI)
+  public void onUserLeaveHint(@Nullable Activity activity) {
+    ReactMarker.logMarker(ReactMarkerConstants.ON_USER_LEAVE_HINT_START);
+    for (ActivityEventListener listener : mActivityEventListeners) {
+      try {
+        listener.onUserLeaveHint(activity);
+      } catch (RuntimeException e) {
+        handleException(e);
+      }
+    }
+    ReactMarker.logMarker(ReactMarkerConstants.ON_USER_LEAVE_HINT_END);
   }
 
   @ThreadConfined(UI)

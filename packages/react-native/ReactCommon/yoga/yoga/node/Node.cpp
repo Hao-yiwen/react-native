@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <iostream>
 
+#include <yoga/algorithm/FlexDirection.h>
 #include <yoga/debug/AssertFatal.h>
 #include <yoga/debug/Log.h>
 #include <yoga/node/Node.h>
@@ -43,7 +44,7 @@ Node::Node(Node&& node) noexcept
       owner_(node.owner_),
       children_(std::move(node.children_)),
       config_(node.config_),
-      resolvedDimensions_(node.resolvedDimensions_) {
+      processedDimensions_(node.processedDimensions_) {
   for (auto c : children_) {
     c->setOwner(this);
   }
@@ -136,6 +137,11 @@ void Node::setConfig(yoga::Config* config) {
 
   if (yoga::configUpdateInvalidatesLayout(*config_, *config)) {
     markDirtyAndPropagate();
+    layout_.configVersion = 0;
+  } else {
+    // If the config is functionally the same, then align the configVersion so
+    // that we can reuse the layout cache
+    layout_.configVersion = config->getVersion();
   }
 
   config_ = config;
@@ -221,7 +227,8 @@ float Node::relativePosition(
   if (style_.positionType() == PositionType::Static) {
     return 0;
   }
-  if (style_.isInlineStartPositionDefined(axis, direction)) {
+  if (style_.isInlineStartPositionDefined(axis, direction) &&
+      !style_.isInlineStartPositionAuto(axis, direction)) {
     return style_.computeInlineStartPosition(axis, direction, axisSize);
   }
 
@@ -230,9 +237,8 @@ float Node::relativePosition(
 
 void Node::setPosition(
     const Direction direction,
-    const float mainSize,
-    const float crossSize,
-    const float ownerWidth) {
+    const float ownerWidth,
+    const float ownerHeight) {
   /* Root nodes should be always layouted as LTR, so we don't return negative
    * values. */
   const Direction directionRespectingRoot =
@@ -244,10 +250,14 @@ void Node::setPosition(
 
   // In the case of position static these are just 0. See:
   // https://www.w3.org/TR/css-position-3/#valdef-position-static
-  const float relativePositionMain =
-      relativePosition(mainAxis, directionRespectingRoot, mainSize);
-  const float relativePositionCross =
-      relativePosition(crossAxis, directionRespectingRoot, crossSize);
+  const float relativePositionMain = relativePosition(
+      mainAxis,
+      directionRespectingRoot,
+      isRow(mainAxis) ? ownerWidth : ownerHeight);
+  const float relativePositionCross = relativePosition(
+      crossAxis,
+      directionRespectingRoot,
+      isRow(mainAxis) ? ownerHeight : ownerWidth);
 
   const auto mainAxisLeadingEdge = inlineStartEdge(mainAxis, direction);
   const auto mainAxisTrailingEdge = inlineEndEdge(mainAxis, direction);
@@ -272,25 +282,45 @@ void Node::setPosition(
       crossAxisTrailingEdge);
 }
 
-Style::Length Node::resolveFlexBasisPtr() const {
+Style::Length Node::processFlexBasis() const {
   Style::Length flexBasis = style_.flexBasis();
   if (flexBasis.unit() != Unit::Auto && flexBasis.unit() != Unit::Undefined) {
     return flexBasis;
   }
   if (style_.flex().isDefined() && style_.flex().unwrap() > 0.0f) {
-    return config_->useWebDefaults() ? value::ofAuto() : value::points(0);
+    return config_->useWebDefaults() ? StyleLength::ofAuto()
+                                     : StyleLength::points(0);
   }
-  return value::ofAuto();
+  return StyleLength::ofAuto();
 }
 
-void Node::resolveDimension() {
+FloatOptional Node::resolveFlexBasis(
+    Direction direction,
+    FlexDirection flexDirection,
+    float referenceLength,
+    float ownerWidth) const {
+  FloatOptional value = processFlexBasis().resolve(referenceLength);
+  if (style_.boxSizing() == BoxSizing::BorderBox) {
+    return value;
+  }
+
+  Dimension dim = dimension(flexDirection);
+  FloatOptional dimensionPaddingAndBorder = FloatOptional{
+      style_.computePaddingAndBorderForDimension(direction, dim, ownerWidth)};
+
+  return value +
+      (dimensionPaddingAndBorder.isDefined() ? dimensionPaddingAndBorder
+                                             : FloatOptional{0.0});
+}
+
+void Node::processDimensions() {
   for (auto dim : {Dimension::Width, Dimension::Height}) {
     if (style_.maxDimension(dim).isDefined() &&
         yoga::inexactEquals(
             style_.maxDimension(dim), style_.minDimension(dim))) {
-      resolvedDimensions_[yoga::to_underlying(dim)] = style_.maxDimension(dim);
+      processedDimensions_[yoga::to_underlying(dim)] = style_.maxDimension(dim);
     } else {
-      resolvedDimensions_[yoga::to_underlying(dim)] = style_.dimension(dim);
+      processedDimensions_[yoga::to_underlying(dim)] = style_.dimension(dim);
     }
   }
 }

@@ -8,8 +8,9 @@
  * @flow
  */
 
-import type {RNTesterModuleInfo} from './types/RNTesterTypes';
+import type {RNTesterModuleInfo, ScreenTypes} from './types/RNTesterTypes';
 
+import {title as PlaygroundTitle} from './examples/Playground/PlaygroundExample';
 import RNTesterModuleContainer from './components/RNTesterModuleContainer';
 import RNTesterModuleList from './components/RNTesterModuleList';
 import RNTesterNavBar, {navBarHeight} from './components/RNTesterNavbar';
@@ -28,21 +29,38 @@ import {
 import * as React from 'react';
 import {
   BackHandler,
+  Button,
   Linking,
+  Platform,
   StyleSheet,
   View,
   useColorScheme,
 } from 'react-native';
+import * as NativeComponentRegistry from 'react-native/Libraries/NativeComponent/NativeComponentRegistry';
+
+// In Bridgeless mode, in dev, enable static view config validator
+if (global.RN$Bridgeless === true && __DEV__) {
+  NativeComponentRegistry.setRuntimeConfigProvider(() => {
+    return {
+      native: false,
+      verify: true,
+    };
+  });
+}
 
 // RNTester App currently uses in memory storage for storing navigation state
 
+type BackButton = ({onBack: () => void}) => React.Node;
+
 const RNTesterApp = ({
   testList,
+  customBackButton,
 }: {
   testList?: {
     components?: Array<RNTesterModuleInfo>,
     apis?: Array<RNTesterModuleInfo>,
   },
+  customBackButton?: BackButton,
 }): React.Node => {
   const [state, dispatch] = React.useReducer(
     RNTesterNavigationReducer,
@@ -110,11 +128,22 @@ const RNTesterApp = ({
   );
 
   const handleNavBarPress = React.useCallback(
-    (args: {screen: string}) => {
-      dispatch({
-        type: RNTesterNavigationActionsType.NAVBAR_PRESS,
-        data: {screen: args.screen},
-      });
+    (args: {screen: ScreenTypes}) => {
+      if (args.screen === 'playgrounds') {
+        dispatch({
+          type: RNTesterNavigationActionsType.NAVBAR_OPEN_MODULE_PRESS,
+          data: {
+            key: 'PlaygroundExample',
+            title: PlaygroundTitle,
+            screen: args.screen,
+          },
+        });
+      } else {
+        dispatch({
+          type: RNTesterNavigationActionsType.NAVBAR_PRESS,
+          data: {screen: args.screen},
+        });
+      }
     },
     [dispatch],
   );
@@ -227,6 +256,14 @@ const RNTesterApp = ({
         ? 'Components'
         : 'APIs';
 
+  const BackButtonComponent: ?BackButton = customBackButton
+    ? customBackButton
+    : Platform.OS === 'ios'
+      ? ({onBack}) => (
+          <Button title="Back" onPress={onBack} color={theme.LinkColor} />
+        )
+      : null;
+
   const activeExampleList =
     screen === Screens.COMPONENTS ? examplesList.components : examplesList.apis;
 
@@ -235,9 +272,11 @@ const RNTesterApp = ({
       <RNTTitleBar
         title={title}
         theme={theme}
-        onBack={activeModule ? handleBackPress : null}
-        documentationURL={activeModule?.documentationURL}
-      />
+        documentationURL={activeModule?.documentationURL}>
+        {activeModule && BackButtonComponent ? (
+          <BackButtonComponent onBack={handleBackPress} />
+        ) : undefined}
+      </RNTTitleBar>
       <View
         style={StyleSheet.compose(styles.container, {
           backgroundColor: theme.GroupedBackgroundColor,

@@ -8,7 +8,12 @@
 #include "DefaultTurboModules.h"
 #include <react/nativemodule/dom/NativeDOM.h>
 #include <react/nativemodule/featureflags/NativeReactNativeFeatureFlags.h>
+#include <react/nativemodule/idlecallbacks/NativeIdleCallbacks.h>
 #include <react/nativemodule/microtasks/NativeMicrotasks.h>
+
+#ifdef HERMES_ENABLE_DEBUGGER
+#include <react/nativemodule/devtoolsruntimesettings/DevToolsRuntimeSettingsModule.h>
+#endif
 
 namespace facebook::react {
 
@@ -23,9 +28,19 @@ namespace facebook::react {
     return std::make_shared<NativeMicrotasks>(jsInvoker);
   }
 
+  if (name == NativeIdleCallbacks::kModuleName) {
+    return std::make_shared<NativeIdleCallbacks>(jsInvoker);
+  }
+
   if (name == NativeDOM::kModuleName) {
     return std::make_shared<NativeDOM>(jsInvoker);
   }
+
+#ifdef HERMES_ENABLE_DEBUGGER
+  if (name == DevToolsRuntimeSettingsModule::kModuleName) {
+    return std::make_shared<DevToolsRuntimeSettingsModule>(jsInvoker);
+  }
+#endif
 
   return nullptr;
 }

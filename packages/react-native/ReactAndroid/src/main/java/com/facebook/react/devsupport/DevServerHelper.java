@@ -7,9 +7,10 @@
 
 package com.facebook.react.devsupport;
 
+import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.provider.Settings;
+import android.provider.Settings.Secure;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.facebook.common.logging.FLog;
@@ -104,6 +105,7 @@ public class DevServerHelper {
   private final OkHttpClient mClient;
   private final BundleDownloader mBundleDownloader;
   private final PackagerStatusCheck mPackagerStatusCheck;
+  private final Context mApplicationContext;
   private final String mPackageName;
 
   private @Nullable JSPackagerClient mPackagerClient;
@@ -111,7 +113,7 @@ public class DevServerHelper {
 
   public DevServerHelper(
       DeveloperSettings developerSettings,
-      String packageName,
+      Context applicationContext,
       PackagerConnectionSettings packagerConnectionSettings) {
     mSettings = developerSettings;
     mPackagerConnectionSettings = packagerConnectionSettings;
@@ -123,7 +125,8 @@ public class DevServerHelper {
             .build();
     mBundleDownloader = new BundleDownloader(mClient);
     mPackagerStatusCheck = new PackagerStatusCheck(mClient);
-    mPackageName = packageName;
+    mApplicationContext = applicationContext;
+    mPackageName = applicationContext.getPackageName();
   }
 
   public void openPackagerConnection(
@@ -211,10 +214,13 @@ public class DevServerHelper {
       @Override
       protected Void doInBackground(Void... params) {
         if (InspectorFlags.getFuseboxEnabled()) {
+          Map<String, String> metadata =
+              AndroidInfoHelpers.getInspectorHostMetadata(mApplicationContext);
+
           mInspectorPackagerConnection =
-              new CxxInspectorPackagerConnection(getInspectorDeviceUrl(), mPackageName);
+              new CxxInspectorPackagerConnection(
+                  getInspectorDeviceUrl(), metadata.get("deviceName"), mPackageName);
         } else {
-          // TODO(T190163403): Remove legacy InspectorPackagerConnection
           mInspectorPackagerConnection =
               new InspectorPackagerConnection(getInspectorDeviceUrl(), mPackageName);
         }
@@ -302,7 +308,8 @@ public class DevServerHelper {
     // * randomly generated when the user first sets up the device and should remain constant for
     // the lifetime of the user's device (API level < 26).
     // [Source: Android docs]
-    String androidId = Settings.Secure.ANDROID_ID;
+    String androidId =
+        Secure.getString(mApplicationContext.getContentResolver(), Secure.ANDROID_ID);
 
     String rawDeviceId =
         String.format(
@@ -382,6 +389,14 @@ public class DevServerHelper {
   private String createBundleURL(
       String mainModuleID, BundleType type, String host, boolean modulesOnly, boolean runModule) {
     boolean dev = getDevMode();
+    StringBuilder additionalOptionsBuilder = new StringBuilder();
+    for (Map.Entry<String, String> entry :
+        mPackagerConnectionSettings.getAdditionalOptionsForPackager().entrySet()) {
+      if (entry.getValue().length() == 0) {
+        continue;
+      }
+      additionalOptionsBuilder.append("&" + entry.getKey() + "=" + Uri.encode(entry.getValue()));
+    }
     return String.format(
             Locale.US,
             "http://%s/%s.%s?platform=android&dev=%s&lazy=%s&minify=%s&app=%s&modulesOnly=%s&runModule=%s",
@@ -394,7 +409,8 @@ public class DevServerHelper {
             mPackageName,
             modulesOnly ? "true" : "false",
             runModule ? "true" : "false")
-        + (InspectorFlags.getFuseboxEnabled() ? "&excludeSource=true&sourcePaths=url-server" : "");
+        + (InspectorFlags.getFuseboxEnabled() ? "&excludeSource=true&sourcePaths=url-server" : "")
+        + additionalOptionsBuilder.toString();
   }
 
   private String createBundleURL(String mainModuleID, BundleType type) {

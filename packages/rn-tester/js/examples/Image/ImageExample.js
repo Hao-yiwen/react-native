@@ -10,17 +10,15 @@
 
 'use strict';
 
+import type {ImageProps} from 'react-native/Libraries/Image/ImageProps';
 import type {LayoutEvent} from 'react-native/Libraries/Types/CoreEventTypes';
 
-const ImageCapInsetsExample = require('./ImageCapInsetsExample');
-const React = require('react');
-const {
-  Image,
-  ImageBackground,
-  StyleSheet,
-  Text,
-  View,
-} = require('react-native');
+import * as ReactNativeFeatureFlags from 'react-native/src/private/featureflags/ReactNativeFeatureFlags';
+
+import RNTesterText from '../../components/RNTesterText';
+import ImageCapInsetsExample from './ImageCapInsetsExample';
+import React from 'react';
+import {Image, ImageBackground, StyleSheet, Text, View} from 'react-native';
 
 const IMAGE1 =
   'https://www.facebook.com/assets/fb_lite_messaging/E2EE-settings@3x.png';
@@ -217,9 +215,9 @@ class NetworkImageCallbackExample extends React.Component<
             }
           />
         ) : null}
-        <Text style={styles.networkImageText}>
+        <RNTesterText style={styles.networkImageText} variant="label">
           {this.state.events.join('\n')}
-        </Text>
+        </RNTesterText>
       </View>
     );
   }
@@ -231,12 +229,8 @@ type NetworkImageExampleState = {|
   progress: $ReadOnlyArray<number>,
 |};
 
-type NetworkImageExampleProps = $ReadOnly<{|
-  source: ImageSource,
-|}>;
-
 class NetworkImageExample extends React.Component<
-  NetworkImageExampleProps,
+  ImageProps,
   NetworkImageExampleState,
 > {
   state: NetworkImageExampleState = {
@@ -247,11 +241,11 @@ class NetworkImageExample extends React.Component<
 
   render(): React.Node {
     return this.state.error != null ? (
-      <Text>{this.state.error}</Text>
+      <RNTesterText variant="label">{this.state.error}</RNTesterText>
     ) : (
       <>
         <Image
-          source={this.props.source}
+          {...this.props}
           style={[styles.base, styles.visibleOverflow]}
           onLoadStart={e => this.setState({loading: true})}
           onError={e =>
@@ -268,9 +262,10 @@ class NetworkImageExample extends React.Component<
           }}
           onLoad={() => this.setState({loading: false, error: null})}
         />
-        <Text>
+        <RNTesterText variant="label">
+          Progress:{' '}
           {this.state.progress.map(progress => `${progress}%`).join('\n')}
-        </Text>
+        </RNTesterText>
       </>
     );
   }
@@ -304,10 +299,10 @@ class ImageSizeExample extends React.Component<
     return (
       <View style={styles.flexRow}>
         <Image style={styles.imageSizeExample} source={this.props.source} />
-        <Text>
+        <RNTesterText>
           Actual dimensions:{'\n'}
           Width: {this.state.width}, Height: {this.state.height}
-        </Text>
+        </RNTesterText>
       </View>
     );
   }
@@ -353,16 +348,20 @@ class MultipleSourcesExample extends React.Component<
     return (
       <View>
         <View style={styles.spaceBetweenView}>
-          <Text style={styles.touchableText} onPress={this.decreaseImageSize}>
+          <RNTesterText
+            style={styles.touchableText}
+            onPress={this.decreaseImageSize}>
             Decrease image size
-          </Text>
-          <Text style={styles.touchableText} onPress={this.increaseImageSize}>
+          </RNTesterText>
+          <RNTesterText
+            style={styles.touchableText}
+            onPress={this.increaseImageSize}>
             Increase image size
-          </Text>
+          </RNTesterText>
         </View>
-        <Text>
+        <RNTesterText>
           Container image size: {this.state.width}x{this.state.height}{' '}
-        </Text>
+        </RNTesterText>
         <View style={{height: this.state.height, width: this.state.width}}>
           <Image
             style={styles.flex}
@@ -417,17 +416,17 @@ class LoadingIndicatorSourceExample extends React.Component<
     return (
       <View>
         <View style={styles.spaceBetweenView}>
-          <Text style={styles.touchableText} onPress={this.reloadImage}>
+          <RNTesterText style={styles.touchableText} onPress={this.reloadImage}>
             Refresh Image
-          </Text>
+          </RNTesterText>
         </View>
         <Image
           loadingIndicatorSource={this.loaderGif}
           source={loadingImage}
           style={styles.base}
         />
-        <Text>Image Hash: {this.state.imageHash}</Text>
-        <Text>Image URI: {loadingImage.uri}</Text>
+        <RNTesterText>Image Hash: {this.state.imageHash}</RNTesterText>
+        <RNTesterText>Image URI: {loadingImage.uri}</RNTesterText>
       </View>
     );
   }
@@ -522,7 +521,9 @@ class OnLayoutExample extends React.Component<
   render(): React.Node {
     return (
       <View>
-        <Text>Adjust the image size to trigger the OnLayout handler.</Text>
+        <RNTesterText>
+          Adjust the image size to trigger the OnLayout handler.
+        </RNTesterText>
         <View style={styles.spaceBetweenView}>
           <Text style={styles.touchableText} onPress={this.decreaseImageSize}>
             Decrease image size
@@ -531,9 +532,9 @@ class OnLayoutExample extends React.Component<
             Increase image size
           </Text>
         </View>
-        <Text>
+        <RNTesterText>
           Container image size: {this.state.width}x{this.state.height}{' '}
-        </Text>
+        </RNTesterText>
         <View style={{height: this.state.height, width: this.state.width}}>
           <Image
             onLayout={this.onLayoutHandler}
@@ -557,7 +558,9 @@ class OnLayoutExample extends React.Component<
             ]}
           />
         </View>
-        <Text>Layout Handler Message: {this.state.layoutHandlerMessage}</Text>
+        <RNTesterText>
+          Layout Handler Message: {this.state.layoutHandlerMessage}
+        </RNTesterText>
       </View>
     );
   }
@@ -586,9 +589,9 @@ class OnPartialLoadExample extends React.Component<
   render(): React.Node {
     return (
       <View>
-        <Text>
+        <RNTesterText>
           Partial Load Function Executed: {JSON.stringify(this.state.hasLoaded)}
-        </Text>
+        </RNTesterText>
         <Image
           source={{
             uri: `https://images.pexels.com/photos/671557/pexels-photo-671557.jpeg?&buster=${Math.random()}`,
@@ -596,6 +599,29 @@ class OnPartialLoadExample extends React.Component<
           onPartialLoad={this.partialLoadHandler}
           style={styles.base}
         />
+      </View>
+    );
+  }
+}
+
+type VectorDrawableExampleState = {||};
+
+type VectorDrawableExampleProps = $ReadOnly<{||}>;
+
+class VectorDrawableExample extends React.Component<
+  VectorDrawableExampleProps,
+  VectorDrawableExampleState,
+> {
+  state: VectorDrawableExampleState = {};
+
+  render(): React.Node {
+    const isEnabled = ReactNativeFeatureFlags.loadVectorDrawablesOnImages();
+    return (
+      <View style={styles.flex}>
+        <RNTesterText>Enabled: {isEnabled ? 'true' : 'false'}</RNTesterText>
+        <View style={styles.vectorDrawableRow}>
+          <Image source={{uri: 'ic_android'}} style={styles.vectorDrawable} />
+        </View>
       </View>
     );
   }
@@ -802,6 +828,42 @@ const styles = StyleSheet.create({
     borderColor: 'red',
     backgroundColor: 'yellow',
   },
+  boxShadow: {
+    margin: 10,
+  },
+  boxShadowWithBackground: {
+    backgroundColor: 'lightblue',
+    boxShadow: '0px 0px 10px 0px rgba(0, 0, 0, 0.5)',
+  },
+  boxShadowMultiOutsetInset: {
+    boxShadow:
+      '-5px -5px 10px 2px rgba(0, 128, 0, 0.5), 5px 5px 10px 2px rgba(128, 0, 0, 0.5), inset orange 0px 0px 20px 0px, black 0px 0px 5px 1px',
+    borderColor: 'blue',
+    borderWidth: 1,
+    borderRadius: 20,
+  },
+  boxShadowAsymetricallyRounded: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 5,
+    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: 20,
+    marginRight: 80,
+    marginTop: 40,
+    boxShadow: '80px 0px 10px 0px hotpink',
+    transform: 'rotate(-15deg)',
+  },
+  vectorDrawableRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  vectorDrawable: {
+    height: 64,
+    width: 64,
+  },
+  resizedImage: {
+    height: 100,
+    width: '500%',
+  },
 });
 
 exports.displayName = (undefined: ?string);
@@ -906,6 +968,18 @@ exports.examples = [
     },
   },
   {
+    title: 'Error Handler for Large Images',
+    render: function (): React.Node {
+      return (
+        <NetworkImageExample
+          resizeMethod="none"
+          // 6000x5340 ~ 128 MB
+          source={require('../../assets/very-large-image.png')}
+        />
+      );
+    },
+  },
+  {
     title: 'Image Download Progress',
     render: function (): React.Node {
       return (
@@ -967,9 +1041,10 @@ exports.examples = [
   },
   {
     title: 'Borders',
+    name: 'borders',
     render: function (): React.Node {
       return (
-        <View style={styles.horizontal}>
+        <View style={styles.horizontal} testID="borders-example">
           <Image
             source={smallImage}
             style={[styles.base, styles.background, styles.customBorderColor]}
@@ -980,9 +1055,10 @@ exports.examples = [
   },
   {
     title: 'Border Radius',
+    name: 'border-radius',
     render: function (): React.Node {
       return (
-        <View style={styles.horizontal}>
+        <View style={styles.horizontal} testID="border-radius-example">
           <Image
             style={[styles.base, styles.imageWithBorderRadius]}
             source={fullImage}
@@ -1017,9 +1093,10 @@ exports.examples = [
   },
   {
     title: 'Background Color',
+    name: 'background-color',
     render: function (): React.Node {
       return (
-        <View style={styles.horizontal}>
+        <View style={styles.horizontal} testID="background-color-example">
           <Image source={smallImage} style={styles.base} />
           <Image
             style={[styles.base, styles.backgroundColor1]}
@@ -1032,6 +1109,40 @@ exports.examples = [
           <Image
             style={[styles.base, styles.backgroundColor3]}
             source={smallImage}
+          />
+        </View>
+      );
+    },
+  },
+  {
+    title: 'Box Shadow',
+    name: 'box-shadow',
+    render: function (): React.Node {
+      return (
+        <View style={styles.horizontal} testID="box-shadow-example">
+          <Image
+            style={[
+              styles.base,
+              styles.boxShadow,
+              styles.boxShadowWithBackground,
+            ]}
+            source={smallImage}
+          />
+          <Image
+            style={[
+              styles.base,
+              styles.boxShadow,
+              styles.boxShadowMultiOutsetInset,
+            ]}
+            source={smallImage}
+          />
+          <Image
+            style={[
+              styles.base,
+              styles.boxShadow,
+              styles.boxShadowAsymetricallyRounded,
+            ]}
+            source={fullImage}
           />
         </View>
       );
@@ -1111,9 +1222,9 @@ exports.examples = [
               tintColor={'#8e8e93'}
             />
           </View>
-          <Text style={styles.sectionText}>
+          <RNTesterText style={styles.sectionText} variant="label">
             It also works using the `tintColor` style prop
-          </Text>
+          </RNTesterText>
           <View style={styles.horizontal}>
             <Image
               source={require('../../assets/uie_thumb_normal.png')}
@@ -1148,9 +1259,9 @@ exports.examples = [
               ]}
             />
           </View>
-          <Text style={styles.sectionText}>
+          <RNTesterText style={styles.sectionText} variant="label">
             The `tintColor` prop has precedence over the `tintColor` style prop
-          </Text>
+          </RNTesterText>
           <View style={styles.horizontal}>
             <Image
               source={require('../../assets/uie_thumb_normal.png')}
@@ -1189,9 +1300,9 @@ exports.examples = [
               tintColor={'#5ac8fa'}
             />
           </View>
-          <Text style={styles.sectionText}>
+          <RNTesterText style={styles.sectionText} variant="label">
             It also works with downloaded images:
-          </Text>
+          </RNTesterText>
           <View style={styles.horizontal}>
             <Image
               source={smallImage}
@@ -1242,14 +1353,18 @@ exports.examples = [
               <View key={index}>
                 <View style={styles.horizontal}>
                   <View>
-                    <Text style={styles.resizeModeText}>Contain</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Contain
+                    </RNTesterText>
                     <Image
                       style={[styles.resizeMode, styles.objectFitContain]}
                       source={image}
                     />
                   </View>
                   <View style={styles.leftMargin}>
-                    <Text style={styles.resizeModeText}>Cover</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Cover
+                    </RNTesterText>
                     <Image
                       style={[styles.resizeMode, styles.objectFitCover]}
                       source={image}
@@ -1258,14 +1373,18 @@ exports.examples = [
                 </View>
                 <View style={styles.horizontal}>
                   <View>
-                    <Text style={styles.resizeModeText}>Fill</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Fill
+                    </RNTesterText>
                     <Image
                       style={[styles.resizeMode, styles.objectFitFill]}
                       source={image}
                     />
                   </View>
                   <View style={styles.leftMargin}>
-                    <Text style={styles.resizeModeText}>Scale Down</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Scale Down
+                    </RNTesterText>
                     <Image
                       style={[styles.resizeMode, styles.objectFitScaleDown]}
                       source={image}
@@ -1291,7 +1410,9 @@ exports.examples = [
               <View key={index}>
                 <View style={styles.horizontal}>
                   <View>
-                    <Text style={styles.resizeModeText}>Contain</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Contain
+                    </RNTesterText>
                     <Image
                       style={styles.resizeMode}
                       resizeMode="contain"
@@ -1299,7 +1420,9 @@ exports.examples = [
                     />
                   </View>
                   <View style={styles.leftMargin}>
-                    <Text style={styles.resizeModeText}>Cover</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Cover
+                    </RNTesterText>
                     <Image
                       style={styles.resizeMode}
                       resizeMode="cover"
@@ -1309,7 +1432,9 @@ exports.examples = [
                 </View>
                 <View style={styles.horizontal}>
                   <View>
-                    <Text style={styles.resizeModeText}>Stretch</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Stretch
+                    </RNTesterText>
                     <Image
                       style={styles.resizeMode}
                       resizeMode="stretch"
@@ -1317,7 +1442,9 @@ exports.examples = [
                     />
                   </View>
                   <View style={styles.leftMargin}>
-                    <Text style={styles.resizeModeText}>Repeat</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Repeat
+                    </RNTesterText>
                     <Image
                       style={styles.resizeMode}
                       resizeMode="repeat"
@@ -1325,7 +1452,9 @@ exports.examples = [
                     />
                   </View>
                   <View style={styles.leftMargin}>
-                    <Text style={styles.resizeModeText}>Center</Text>
+                    <RNTesterText style={styles.resizeModeText}>
+                      Center
+                    </RNTesterText>
                     <Image
                       style={styles.resizeMode}
                       resizeMode="center"
@@ -1510,5 +1639,44 @@ exports.examples = [
       return <OnPartialLoadExample />;
     },
     platform: 'ios',
+  },
+  {
+    title: 'Vector Drawable',
+    description:
+      'Demonstrating an example of loading a vector drawable asset by name',
+    render: function (): React.Node {
+      return <VectorDrawableExample />;
+    },
+    platform: 'android',
+  },
+  {
+    title: 'Large image with different resize methods',
+    description:
+      'Demonstrating the effects of loading a large image with different resize methods',
+    render: function (): React.Node {
+      const methods = ['auto', 'resize', 'scale', 'none'];
+      // Four copies of the same image so we don't serve cached copies of the same image
+      const images = [
+        require('../../assets/large-image-1.png'),
+        require('../../assets/large-image-2.png'),
+        require('../../assets/large-image-3.png'),
+        require('../../assets/large-image-4.png'),
+      ];
+      return (
+        <View>
+          {methods.map((method, index) => (
+            <View key={method} style={{display: 'flex', overflow: 'hidden'}}>
+              <RNTesterText>`{method}`</RNTesterText>
+              <Image
+                resizeMethod={method}
+                source={images[index]}
+                style={styles.resizedImage}
+              />
+            </View>
+          ))}
+        </View>
+      );
+    },
+    platform: 'android',
   },
 ];

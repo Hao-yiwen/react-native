@@ -12,6 +12,7 @@
 #import <React/RCTSurfacePresenterBridgeAdapter.h>
 #import <React/RCTUtils.h>
 #import <ReactCommon/RCTHost.h>
+#include <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import <react/featureflags/ReactNativeFeatureFlags.h>
 #import <react/featureflags/ReactNativeFeatureFlagsDefaults.h>
@@ -38,6 +39,14 @@
 
 @implementation RCTAppDelegate
 
+- (instancetype)init
+{
+  if (self = [super init]) {
+    _automaticallyLoadReactNativeWindow = YES;
+  }
+  return self;
+}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   [self _setUpFeatureFlags];
@@ -47,24 +56,28 @@
   RCTAppSetupPrepareApp(application, self.turboModuleEnabled);
 
   self.rootViewFactory = [self createRCTRootViewFactory];
+  if (self.newArchEnabled || self.fabricEnabled) {
+    [RCTComponentViewFactory currentComponentViewFactory].thirdPartyFabricComponentsProvider = self;
+  }
 
+  if (self.automaticallyLoadReactNativeWindow) {
+    [self loadReactNativeWindow:launchOptions];
+  }
+
+  return YES;
+}
+
+- (void)loadReactNativeWindow:(NSDictionary *)launchOptions
+{
   UIView *rootView = [self.rootViewFactory viewWithModuleName:self.moduleName
                                             initialProperties:self.initialProps
                                                 launchOptions:launchOptions];
 
-  if (self.newArchEnabled || self.fabricEnabled) {
-    [RCTComponentViewFactory currentComponentViewFactory].thirdPartyFabricComponentsProvider = self;
-  }
-  [self customizeRootView:(RCTRootView *)rootView];
-
   self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
   UIViewController *rootViewController = [self createRootViewController];
   [self setRootView:rootView toRootViewController:rootViewController];
-  self.window.rootViewController = rootViewController;
-  self.window.windowScene.delegate = self;
-  [self.window makeKeyAndVisible];
-
-  return YES;
+  _window.rootViewController = rootViewController;
+  [_window makeKeyAndVisible];
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application
@@ -168,8 +181,12 @@
 - (void)host:(RCTHost *)host
     didReceiveJSErrorStack:(NSArray<NSDictionary<NSString *, id> *> *)stack
                    message:(NSString *)message
+           originalMessage:(NSString *_Nullable)originalMessage
+                      name:(NSString *_Nullable)name
+            componentStack:(NSString *_Nullable)componentStack
                exceptionId:(NSUInteger)exceptionId
                    isFatal:(BOOL)isFatal
+                 extraData:(NSDictionary<NSString *, id> *)extraData
 {
 }
 
@@ -253,23 +270,14 @@
     return [weakSelf createBridgeWithDelegate:delegate launchOptions:launchOptions];
   };
 
+  configuration.customizeRootView = ^(UIView *_Nonnull rootView) {
+    [weakSelf customizeRootView:(RCTRootView *)rootView];
+  };
+
   configuration.sourceURLForBridge = ^NSURL *_Nullable(RCTBridge *_Nonnull bridge)
   {
     return [weakSelf sourceURLForBridge:bridge];
   };
-
-  configuration.hostDidStartBlock = ^(RCTHost *_Nonnull host) {
-    [weakSelf hostDidStart:host];
-  };
-
-  configuration.hostDidReceiveJSErrorStackBlock =
-      ^(RCTHost *_Nonnull host,
-        NSArray<NSDictionary<NSString *, id> *> *_Nonnull stack,
-        NSString *_Nonnull message,
-        NSUInteger exceptionId,
-        BOOL isFatal) {
-        [weakSelf host:host didReceiveJSErrorStack:stack message:message exceptionId:exceptionId isFatal:isFatal];
-      };
 
   if ([self respondsToSelector:@selector(extraModulesForBridge:)]) {
     configuration.extraModulesForBridge = ^NSArray<id<RCTBridgeModule>> *_Nonnull(RCTBridge *_Nonnull bridge)
@@ -292,12 +300,26 @@
     };
   }
 
-  return [[RCTRootViewFactory alloc] initWithConfiguration:configuration andTurboModuleManagerDelegate:self];
+  return [[RCTRootViewFactory alloc] initWithTurboModuleDelegate:self hostDelegate:self configuration:configuration];
 }
 
 #pragma mark - Feature Flags
 
-class RCTAppDelegateBridgelessFeatureFlags : public facebook::react::ReactNativeFeatureFlagsDefaults {};
+class RCTAppDelegateBridgelessFeatureFlags : public facebook::react::ReactNativeFeatureFlagsDefaults {
+ public:
+  bool useModernRuntimeScheduler() override
+  {
+    return true;
+  }
+  bool enableMicrotasks() override
+  {
+    return true;
+  }
+  bool batchRenderingUpdatesInEventLoop() override
+  {
+    return true;
+  }
+};
 
 - (void)_setUpFeatureFlags
 {

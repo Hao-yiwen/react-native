@@ -9,13 +9,12 @@ package com.facebook.react.modules.statusbar
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
-import android.animation.ValueAnimator.AnimatorUpdateListener
 import android.os.Build
 import android.view.View
-import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.facebook.common.logging.FLog
 import com.facebook.fbreact.specs.NativeStatusBarManagerAndroidSpec
 import com.facebook.react.bridge.GuardedRunnable
@@ -25,6 +24,8 @@ import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.common.ReactConstants
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.PixelUtil
+import com.facebook.react.views.view.setStatusBarTranslucency
+import com.facebook.react.views.view.setStatusBarVisibility
 
 /** [NativeModule] that allows changing the appearance of the status bar. */
 @ReactModule(name = NativeStatusBarManagerAndroidSpec.NAME)
@@ -33,34 +34,27 @@ public class StatusBarModule(reactContext: ReactApplicationContext?) :
 
   @Suppress("DEPRECATION")
   override fun getTypedExportedConstants(): Map<String, Any> {
-    var statusBarColorString = "black"
-    val statusBarColor = currentActivity?.window?.statusBarColor
-    if (statusBarColor != null) {
-      statusBarColorString = String.format("#%06X", 0xFFFFFF and statusBarColor)
-    }
-
+    val statusBarColor =
+        currentActivity?.window?.statusBarColor?.let { color ->
+          String.format("#%06X", 0xFFFFFF and color)
+        } ?: "black"
     return mapOf(
         HEIGHT_KEY to PixelUtil.toDIPFromPixel(getStatusBarHeightPx()),
-        DEFAULT_BACKGROUND_COLOR_KEY to statusBarColorString,
+        DEFAULT_BACKGROUND_COLOR_KEY to statusBarColor,
     )
   }
 
   @Suppress("DEPRECATION")
   private fun getStatusBarHeightPx(): Float {
-    val activity = currentActivity ?: return 0f
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      val window = activity.window ?: return 0f
-      val insets =
-          window.decorView.rootWindowInsets.getInsets(
-              WindowInsets.Type.statusBars() or
-                  WindowInsets.Type.navigationBars() or
-                  WindowInsets.Type.displayCutout())
-      insets.top.toFloat()
-    } else {
-      val window = activity.window ?: return 0f
-      val insets = window.decorView.rootWindowInsets
-      insets.systemWindowInsetTop.toFloat()
-    }
+    val windowInsets =
+        currentActivity?.window?.decorView?.let(ViewCompat::getRootWindowInsets) ?: return 0f
+    return windowInsets
+        .getInsets(
+            WindowInsetsCompat.Type.statusBars() or
+                WindowInsetsCompat.Type.navigationBars() or
+                WindowInsetsCompat.Type.displayCutout())
+        .top
+        .toFloat()
   }
 
   @Suppress("DEPRECATION")
@@ -81,12 +75,9 @@ public class StatusBarModule(reactContext: ReactApplicationContext?) :
             if (animated) {
               val curColor = window.statusBarColor
               val colorAnimation = ValueAnimator.ofObject(ArgbEvaluator(), curColor, color)
-              colorAnimation.addUpdateListener(
-                  object : AnimatorUpdateListener {
-                    override fun onAnimationUpdate(animator: ValueAnimator) {
-                      activity.window?.statusBarColor = (animator.animatedValue as Int)
-                    }
-                  })
+              colorAnimation.addUpdateListener { animator ->
+                activity.window?.statusBarColor = (animator.animatedValue as Int)
+              }
               colorAnimation.setDuration(300).startDelay = 0
               colorAnimation.start()
             } else {
@@ -108,23 +99,7 @@ public class StatusBarModule(reactContext: ReactApplicationContext?) :
     UiThreadUtil.runOnUiThread(
         object : GuardedRunnable(reactApplicationContext) {
           override fun runGuarded() {
-            // If the status bar is translucent hook into the window insets calculations
-            // and consume all the top insets so no padding will be added under the status bar.
-            val window = activity.window ?: return
-            val decorView = window.decorView
-            if (translucent) {
-              decorView.setOnApplyWindowInsetsListener { v, insets ->
-                val defaultInsets = v.onApplyWindowInsets(insets)
-                defaultInsets.replaceSystemWindowInsets(
-                    defaultInsets.systemWindowInsetLeft,
-                    0,
-                    defaultInsets.systemWindowInsetRight,
-                    defaultInsets.systemWindowInsetBottom)
-              }
-            } else {
-              decorView.setOnApplyWindowInsetsListener(null)
-            }
-            ViewCompat.requestApplyInsets(decorView)
+            activity.window?.setStatusBarTranslucency(translucent)
           }
         })
   }
@@ -138,17 +113,7 @@ public class StatusBarModule(reactContext: ReactApplicationContext?) :
           "StatusBarModule: Ignored status bar change, current activity is null.")
       return
     }
-    UiThreadUtil.runOnUiThread(
-        Runnable {
-          val window = activity.window ?: return@Runnable
-          if (hidden) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
-          } else {
-            window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
-            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-          }
-        })
+    UiThreadUtil.runOnUiThread { activity.window?.setStatusBarVisibility(hidden) }
   }
 
   @Suppress("DEPRECATION")

@@ -124,7 +124,8 @@ class ReactInstanceTest : public ::testing::Test {
     auto mockRegistry = std::make_unique<MockTimerRegistry>();
     mockRegistry_ = mockRegistry.get();
     timerManager_ = std::make_shared<TimerManager>(std::move(mockRegistry));
-    auto onJsError = [](const JsErrorHandler::ParsedError& errorMap) noexcept {
+    auto onJsError = [](jsi::Runtime& /*runtime*/,
+                        const JsErrorHandler::ParsedError& /*error*/) noexcept {
       // Do nothing
     };
 
@@ -160,6 +161,12 @@ class ReactInstanceTest : public ::testing::Test {
 
     // Run the main bundle, so that native -> JS calls no longer get buffered.
     loadScript(script);
+  }
+
+  jsi::Value tryEval(std::string js, std::string defaultVal) {
+    return eval(
+        "(function() { try { return " + js + "; } catch { return " +
+        defaultVal + "; } })()");
   }
 
   jsi::Value eval(std::string js) {
@@ -215,16 +222,16 @@ class ReactInstanceTest : public ::testing::Test {
 };
 
 TEST_F(ReactInstanceTest, testBridgelessFlagIsSet) {
-  eval("RN$Bridgeless === true");
-  expectError();
+  auto valBefore = tryEval("RN$Bridgeless === true", "false");
+  EXPECT_EQ(valBefore.getBool(), false);
   initializeRuntimeWithScript("");
   auto val = eval("RN$Bridgeless === true");
   EXPECT_EQ(val.getBool(), true);
 }
 
 TEST_F(ReactInstanceTest, testProfilingFlag) {
-  eval("__RCTProfileIsProfiling === true");
-  expectError();
+  auto valBefore = tryEval("__RCTProfileIsProfiling === true", "false");
+  EXPECT_EQ(valBefore.getBool(), false);
   initializeRuntimeWithScript({.isProfiling = true}, "");
   auto val = eval("__RCTProfileIsProfiling === true");
   EXPECT_EQ(val.getBool(), true);
@@ -294,12 +301,12 @@ TEST_F(ReactInstanceTest, testSetImmediateWithInvalidArgs) {
   EXPECT_EQ(
       getErrorMessage("setImmediate();"),
       "setImmediate must be called with at least one argument (a function to call)");
-  EXPECT_EQ(
-      getErrorMessage("setImmediate('invalid');"),
-      "The first argument to setImmediate must be a function.");
-  EXPECT_EQ(
-      getErrorMessage("setImmediate({});"),
-      "The first argument to setImmediate must be a function.");
+
+  eval("setImmediate('invalid');");
+  expectNoError();
+
+  eval("setImmediate({});");
+  expectNoError();
 }
 
 TEST_F(ReactInstanceTest, testClearImmediate) {
@@ -420,12 +427,12 @@ TEST_F(ReactInstanceTest, testSetTimeoutWithInvalidArgs) {
   EXPECT_EQ(
       getErrorMessage("setTimeout();"),
       "setTimeout must be called with at least one argument (the function to call).");
-  EXPECT_EQ(
-      getErrorMessage("setTimeout('invalid');"),
-      "The first argument to setTimeout must be a function.");
-  EXPECT_EQ(
-      getErrorMessage("setTimeout(() => {}, 'invalid');"),
-      "The second argument to setTimeout must be a number or undefined.");
+
+  eval("setTimeout('invalid');");
+  expectNoError();
+
+  eval("setTimeout(() => {}, 'invalid');");
+  expectNoError();
 }
 
 TEST_F(ReactInstanceTest, testClearTimeout) {

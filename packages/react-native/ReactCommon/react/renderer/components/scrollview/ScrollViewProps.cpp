@@ -91,6 +91,15 @@ ScrollViewProps::ScrollViewProps(
                     "automaticallyAdjustsScrollIndicatorInsets",
                     sourceProps.automaticallyAdjustsScrollIndicatorInsets,
                     true)),
+      automaticallyAdjustKeyboardInsets(
+          CoreFeatures::enablePropIteratorSetter
+              ? sourceProps.automaticallyAdjustKeyboardInsets
+              : convertRawProp(
+                    context,
+                    rawProps,
+                    "automaticallyAdjustKeyboardInsets",
+                    sourceProps.automaticallyAdjustKeyboardInsets,
+                    false)),
       decelerationRate(
           CoreFeatures::enablePropIteratorSetter
               ? sourceProps.decelerationRate
@@ -108,7 +117,7 @@ ScrollViewProps::ScrollViewProps(
                     rawProps,
                     "endDraggingSensitivityMultiplier",
                     sourceProps.endDraggingSensitivityMultiplier,
-                    1)),
+                    (Float)1)),
       enableSyncOnScroll(
           CoreFeatures::enablePropIteratorSetter
               ? sourceProps.enableSyncOnScroll

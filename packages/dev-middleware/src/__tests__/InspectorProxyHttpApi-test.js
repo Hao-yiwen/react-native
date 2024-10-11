@@ -18,6 +18,7 @@ import {fetchJson, fetchLocal} from './FetchUtils';
 import {createDeviceMock} from './InspectorDeviceUtils';
 import {withAbortSignalForEachTest} from './ResourceUtils';
 import {withServerForEachTest} from './ServerUtils';
+import DefaultBrowserLauncher from '../utils/DefaultBrowserLauncher';
 
 // Must be greater than or equal to PAGES_POLLING_INTERVAL in `InspectorProxy.js`.
 const PAGES_POLLING_DELAY = 1000;
@@ -172,7 +173,6 @@ describe('inspector proxy HTTP API', () => {
           app: 'bar-app',
           id: 'page1',
           title: 'bar-title',
-          vm: 'bar-vm',
         },
       ]);
 
@@ -188,7 +188,6 @@ describe('inspector proxy HTTP API', () => {
             description: 'bar-app',
             deviceName: 'foo',
             devtoolsFrontendUrl: expect.any(String),
-            faviconUrl: 'https://reactjs.org/favicon.ico',
             id: 'device1-page1',
             reactNative: {
               capabilities: {},
@@ -203,7 +202,6 @@ describe('inspector proxy HTTP API', () => {
             description: 'bar-app',
             deviceName: 'foo',
             devtoolsFrontendUrl: expect.any(String),
-            faviconUrl: 'https://reactjs.org/favicon.ico',
             id: 'device2-page1',
             reactNative: {
               capabilities: {},
@@ -211,7 +209,6 @@ describe('inspector proxy HTTP API', () => {
             },
             title: 'bar-title',
             type: 'node',
-            vm: 'bar-vm',
             webSocketDebuggerUrl: expect.any(String),
           },
         ]);
@@ -367,6 +364,62 @@ describe('inspector proxy HTTP API', () => {
           `${serverRef.serverBaseUrl}${endpoint}`,
         );
         expect(response.headers.get('Content-Length')).not.toBeNull();
+      } finally {
+        device.close();
+      }
+    });
+  });
+
+  describe('/open-debugger endpoint', () => {
+    it('opens requested device using appId, device, and target', async () => {
+      // Connect a device to use when opening the debugger
+      const device = await createDeviceMock(
+        `${serverRef.serverBaseWsUrl}/inspector/device?device=device1&name=foo&app=bar`,
+        autoCleanup.signal,
+      );
+      device.getPages.mockImplementation(() => [
+        {
+          app: 'bar-app',
+          id: 'page1',
+          title: 'bar-title',
+          vm: 'bar-vm',
+          capabilities: {
+            // Ensure the device target can be found when launching the debugger
+            nativePageReloads: true,
+          },
+        },
+      ]);
+      jest.advanceTimersByTime(PAGES_POLLING_DELAY);
+
+      // Hook into `DefaultBrowserLauncher.launchDebuggerAppWindow` to ensure debugger was launched
+      const launchDebuggerSpy = jest
+        .spyOn(DefaultBrowserLauncher, 'launchDebuggerAppWindow')
+        .mockResolvedValueOnce();
+
+      try {
+        // Fetch the target information for the device
+        const pageListResponse = await fetchJson<JsonPagesListResponse>(
+          `${serverRef.serverBaseUrl}/json`,
+        );
+        // Select the first target from the page list response
+        expect(pageListResponse.length).toBeGreaterThanOrEqual(1);
+        const firstPage = pageListResponse[0];
+
+        // Build the URL for the debugger
+        const openUrl = new URL('/open-debugger', serverRef.serverBaseUrl);
+        openUrl.searchParams.set('appId', firstPage.description);
+        openUrl.searchParams.set(
+          'device',
+          firstPage.reactNative.logicalDeviceId,
+        );
+        openUrl.searchParams.set('target', firstPage.id);
+        // Request to open the debugger for the first device
+        const response = await fetchLocal(openUrl.toString(), {method: 'POST'});
+
+        // Ensure the request was handled properly
+        expect(response.status).toBe(200);
+        // Ensure the debugger was launched
+        expect(launchDebuggerSpy).toHaveBeenCalledWith(expect.any(String));
       } finally {
         device.close();
       }

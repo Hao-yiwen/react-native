@@ -86,7 +86,7 @@ class YG_EXPORT Node : public ::YGNode {
    * https://www.w3.org/TR/css-sizing-3/#definite
    */
   inline bool hasDefiniteLength(Dimension dimension, float ownerSize) {
-    auto usedValue = getResolvedDimension(dimension).resolve(ownerSize);
+    auto usedValue = getProcessedDimension(dimension).resolve(ownerSize);
     return usedValue.isDefined() && usedValue.unwrap() >= 0.0f;
   }
 
@@ -152,12 +152,28 @@ class YG_EXPORT Node : public ::YGNode {
     return isDirty_;
   }
 
-  std::array<Style::Length, 2> getResolvedDimensions() const {
-    return resolvedDimensions_;
+  Style::Length getProcessedDimension(Dimension dimension) const {
+    return processedDimensions_[static_cast<size_t>(dimension)];
   }
 
-  Style::Length getResolvedDimension(Dimension dimension) const {
-    return resolvedDimensions_[static_cast<size_t>(dimension)];
+  FloatOptional getResolvedDimension(
+      Direction direction,
+      Dimension dimension,
+      float referenceLength,
+      float ownerWidth) const {
+    FloatOptional value =
+        getProcessedDimension(dimension).resolve(referenceLength);
+    if (style_.boxSizing() == BoxSizing::BorderBox) {
+      return value;
+    }
+
+    FloatOptional dimensionPaddingAndBorder =
+        FloatOptional{style_.computePaddingAndBorderForDimension(
+            direction, dimension, ownerWidth)};
+
+    return value +
+        (dimensionPaddingAndBorder.isDefined() ? dimensionPaddingAndBorder
+                                               : FloatOptional{0.0});
   }
 
   // Setters
@@ -229,15 +245,16 @@ class YG_EXPORT Node : public ::YGNode {
   void setLayoutBorder(float border, PhysicalEdge edge);
   void setLayoutPadding(float padding, PhysicalEdge edge);
   void setLayoutPosition(float position, PhysicalEdge edge);
-  void setPosition(
-      Direction direction,
-      float mainSize,
-      float crossSize,
-      float ownerWidth);
+  void setPosition(Direction direction, float ownerWidth, float ownerHeight);
 
   // Other methods
-  Style::Length resolveFlexBasisPtr() const;
-  void resolveDimension();
+  Style::Length processFlexBasis() const;
+  FloatOptional resolveFlexBasis(
+      Direction direction,
+      FlexDirection flexDirection,
+      float referenceLength,
+      float ownerWidth) const;
+  void processDimensions();
   Direction resolveDirection(Direction ownerDirection);
   void clearChildren();
   /// Replaces the occurrences of oldChild with newChild
@@ -284,8 +301,8 @@ class YG_EXPORT Node : public ::YGNode {
   Node* owner_ = nullptr;
   std::vector<Node*> children_;
   const Config* config_;
-  std::array<Style::Length, 2> resolvedDimensions_{
-      {value::undefined(), value::undefined()}};
+  std::array<Style::Length, 2> processedDimensions_{
+      {StyleLength::undefined(), StyleLength::undefined()}};
 };
 
 inline Node* resolveRef(const YGNodeRef ref) {

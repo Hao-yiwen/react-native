@@ -166,7 +166,15 @@ std::optional<bool> NativeCxxModuleExample::getWithWithOptionalArgs(
 }
 
 void NativeCxxModuleExample::voidFunc(jsi::Runtime& rt) {
-  // Nothing to do
+  // Emit some events
+  emitOnPress();
+  emitOnClick<std::string>("value from callback on click!");
+  emitOnChange(ObjectStruct{1, "two", std::nullopt});
+  emitOnSubmit(std::vector{
+      ObjectStruct{1, "two", std::nullopt},
+      ObjectStruct{3, "four", std::nullopt},
+      ObjectStruct{5, "six", std::nullopt}});
+  emitOnEvent(NativeCxxModuleExampleEnumNone::NA);
 }
 
 void NativeCxxModuleExample::setMenu(jsi::Runtime& rt, MenuItem menuItem) {

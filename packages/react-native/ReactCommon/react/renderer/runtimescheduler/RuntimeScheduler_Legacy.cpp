@@ -8,7 +8,6 @@
 #include "RuntimeScheduler_Legacy.h"
 #include "SchedulerPriorityUtils.h"
 
-#include <cxxreact/ErrorUtils.h>
 #include <cxxreact/SystraceSection.h>
 #include <react/renderer/consistency/ScopedShadowTreeRevisionLock.h>
 #include <utility>
@@ -19,8 +18,11 @@ namespace facebook::react {
 
 RuntimeScheduler_Legacy::RuntimeScheduler_Legacy(
     RuntimeExecutor runtimeExecutor,
-    std::function<RuntimeSchedulerTimePoint()> now)
-    : runtimeExecutor_(std::move(runtimeExecutor)), now_(std::move(now)) {}
+    std::function<RuntimeSchedulerTimePoint()> now,
+    RuntimeSchedulerTaskErrorHandler onTaskError)
+    : runtimeExecutor_(std::move(runtimeExecutor)),
+      now_(std::move(now)),
+      onTaskError_(std::move(onTaskError)) {}
 
 void RuntimeScheduler_Legacy::scheduleWork(RawCallback&& callback) noexcept {
   SystraceSection s("RuntimeScheduler::scheduleWork");
@@ -80,7 +82,25 @@ std::shared_ptr<Task> RuntimeScheduler_Legacy::scheduleTask(
   return task;
 }
 
-bool RuntimeScheduler_Legacy::getShouldYield() const noexcept {
+std::shared_ptr<Task> RuntimeScheduler_Legacy::scheduleIdleTask(
+    jsi::Function&& /*callback*/,
+    RuntimeSchedulerTimeout /*timeout*/) noexcept {
+  // Idle tasks are not supported on Legacy RuntimeScheduler.
+  // Because the method is `noexcept`, we return `nullptr` here and handle it
+  // on the caller side.
+  return nullptr;
+}
+
+std::shared_ptr<Task> RuntimeScheduler_Legacy::scheduleIdleTask(
+    RawCallback&& /*callback*/,
+    RuntimeSchedulerTimeout /*timeout*/) noexcept {
+  // Idle tasks are not supported on Legacy RuntimeScheduler.
+  // Because the method is `noexcept`, we return `nullptr` here and handle it
+  // on the caller side.
+  return nullptr;
+}
+
+bool RuntimeScheduler_Legacy::getShouldYield() noexcept {
   return runtimeAccessRequests_ > 0;
 }
 
@@ -149,13 +169,14 @@ void RuntimeScheduler_Legacy::callExpiredTasks(jsi::Runtime& runtime) {
       executeTask(runtime, topPriorityTask, didUserCallbackTimeout);
     }
   } catch (jsi::JSError& error) {
-    handleJSError(runtime, error, true);
+    onTaskError_(runtime, error);
   }
 
   currentPriority_ = previousPriority;
 }
 
 void RuntimeScheduler_Legacy::scheduleRenderingUpdate(
+    SurfaceId /*surfaceId*/,
     RuntimeSchedulerRenderingUpdate&& renderingUpdate) {
   SystraceSection s("RuntimeScheduler::scheduleRenderingUpdate");
 
@@ -168,6 +189,16 @@ void RuntimeScheduler_Legacy::setShadowTreeRevisionConsistencyManager(
     ShadowTreeRevisionConsistencyManager*
         shadowTreeRevisionConsistencyManager) {
   shadowTreeRevisionConsistencyManager_ = shadowTreeRevisionConsistencyManager;
+}
+
+void RuntimeScheduler_Legacy::setPerformanceEntryReporter(
+    PerformanceEntryReporter* /*performanceEntryReporter*/) {
+  // No-op in the legacy scheduler
+}
+
+void RuntimeScheduler_Legacy::setEventTimingDelegate(
+    RuntimeSchedulerEventTimingDelegate* /*eventTimingDelegate*/) {
+  // No-op in the legacy scheduler
 }
 
 #pragma mark - Private
@@ -201,7 +232,7 @@ void RuntimeScheduler_Legacy::startWorkLoop(jsi::Runtime& runtime) {
       executeTask(runtime, topPriorityTask, didUserCallbackTimeout);
     }
   } catch (jsi::JSError& error) {
-    handleJSError(runtime, error, true);
+    onTaskError_(runtime, error);
   }
 
   currentPriority_ = previousPriority;

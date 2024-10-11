@@ -10,30 +10,32 @@
 
 'use strict';
 
+import flattenStyle from '../../StyleSheet/flattenStyle';
+import React from 'react';
+
 const render = require('../../../jest/renderer');
 const Text = require('../Text');
-const React = require('react');
 
 jest.unmock('../Text');
 jest.unmock('../TextNativeComponent');
 
-function omitRef(json) {
+function omitRefAndFlattenStyle(instance) {
+  const json = instance.toJSON();
   // Omit `ref` for forward-compatibility with `enableRefAsProp`.
   delete json.props.ref;
+  json.props.style = flattenStyle(json.props.style);
   return json;
 }
 
 describe('Text', () => {
-  it('default render', () => {
-    const instance = render.create(<Text />);
+  it('default render', async () => {
+    const instance = await render.create(<Text />);
 
-    expect(omitRef(instance.toJSON())).toMatchInlineSnapshot(`
+    expect(omitRefAndFlattenStyle(instance)).toMatchInlineSnapshot(`
       <RCTText
         accessible={true}
         allowFontScaling={true}
         ellipsizeMode="tail"
-        isHighlighted={false}
-        selectionColor={null}
       />
     `);
   });
@@ -44,30 +46,28 @@ describe('Text', () => {
 });
 
 describe('Text compat with web', () => {
-  it('renders core props', () => {
+  it('renders core props', async () => {
     const props = {
       id: 'id',
       tabIndex: 0,
       testID: 'testID',
     };
 
-    const instance = render.create(<Text {...props} />);
+    const instance = await render.create(<Text {...props} />);
 
-    expect(omitRef(instance.toJSON())).toMatchInlineSnapshot(`
+    expect(omitRefAndFlattenStyle(instance)).toMatchInlineSnapshot(`
       <RCTText
         accessible={true}
         allowFontScaling={true}
         ellipsizeMode="tail"
-        isHighlighted={false}
         nativeID="id"
-        selectionColor={null}
         tabIndex={0}
         testID="testID"
       />
     `);
   });
 
-  it('renders "aria-*" props', () => {
+  it('renders "aria-*" props', async () => {
     const props = {
       'aria-activedescendant': 'activedescendant',
       'aria-atomic': true,
@@ -117,9 +117,9 @@ describe('Text compat with web', () => {
       'aria-valuetext': '3',
     };
 
-    const instance = render.create(<Text {...props} />);
+    const instance = await render.create(<Text {...props} />);
 
-    expect(omitRef(instance.toJSON())).toMatchInlineSnapshot(`
+    expect(omitRefAndFlattenStyle(instance)).toMatchInlineSnapshot(`
       <RCTText
         accessibilityLabel="label"
         accessibilityState={
@@ -174,14 +174,12 @@ describe('Text compat with web', () => {
         aria-valuetext="3"
         disabled={true}
         ellipsizeMode="tail"
-        isHighlighted={false}
         role="main"
-        selectionColor={null}
       />
     `);
   });
 
-  it('renders styles', () => {
+  it('renders styles', async () => {
     const style = {
       display: 'flex',
       flex: 1,
@@ -191,16 +189,14 @@ describe('Text compat with web', () => {
       verticalAlign: 'middle',
     };
 
-    const instance = render.create(<Text style={style} />);
+    const instance = await render.create(<Text style={style} />);
 
-    expect(omitRef(instance.toJSON())).toMatchInlineSnapshot(`
+    expect(omitRefAndFlattenStyle(instance)).toMatchInlineSnapshot(`
       <RCTText
         accessible={true}
         allowFontScaling={true}
         ellipsizeMode="tail"
-        isHighlighted={false}
         selectable={false}
-        selectionColor={null}
         style={
           Object {
             "backgroundColor": "white",
@@ -208,6 +204,8 @@ describe('Text compat with web', () => {
             "flex": 1,
             "marginInlineStart": 10,
             "textAlignVertical": "center",
+            "userSelect": undefined,
+            "verticalAlign": undefined,
           }
         }
       />

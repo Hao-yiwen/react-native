@@ -18,6 +18,7 @@ import type {
   NativeModuleEnumMap,
   NativeModuleEnumMembers,
   NativeModuleEnumMemberType,
+  NativeModuleEventEmitterShape,
   NativeModuleFunctionTypeAnnotation,
   NativeModulePropertyShape,
   NativeModuleTypeAnnotation,
@@ -28,7 +29,7 @@ import type {AliasResolver} from './Utils';
 
 const {unwrapNullable} = require('../../parsers/parsers-commons');
 const {wrapOptional} = require('../TypeUtils/Cxx');
-const {getEnumName, toSafeCppString} = require('../Utils');
+const {getEnumName, toPascalCase, toSafeCppString} = require('../Utils');
 const {indent} = require('../Utils');
 const {
   createAliasResolver,
@@ -64,17 +65,23 @@ public:
 const ModuleSpecClassDeclarationTemplate = ({
   hasteModuleName,
   moduleName,
+  moduleEventEmitters,
   moduleProperties,
 }: $ReadOnly<{
   hasteModuleName: string,
   moduleName: string,
+  moduleEventEmitters: EventEmitterCpp[],
   moduleProperties: string[],
 }>) => {
   return `template <typename T>
 class JSI_EXPORT ${hasteModuleName}CxxSpec : public TurboModule {
 public:
-  jsi::Value get(jsi::Runtime &rt, const jsi::PropNameID &propName) override {
-    return delegate_.get(rt, propName);
+  jsi::Value create(jsi::Runtime &rt, const jsi::PropNameID &propName) override {
+    return delegate_.create(rt, propName);
+  }
+
+  std::vector<jsi::PropNameID> getPropertyNames(jsi::Runtime& runtime) override {
+    return delegate_.getPropertyNames(runtime);
   }
 
   static constexpr std::string_view kModuleName = "${moduleName}";
@@ -83,16 +90,20 @@ protected:
   ${hasteModuleName}CxxSpec(std::shared_ptr<CallInvoker> jsInvoker)
     : TurboModule(std::string{${hasteModuleName}CxxSpec::kModuleName}, jsInvoker),
       delegate_(reinterpret_cast<T*>(this), jsInvoker) {}
+${moduleEventEmitters.map(e => e.emitFunction).join('\n')}
 
 private:
   class Delegate : public ${hasteModuleName}CxxSpecJSI {
   public:
     Delegate(T *instance, std::shared_ptr<CallInvoker> jsInvoker) :
-      ${hasteModuleName}CxxSpecJSI(std::move(jsInvoker)), instance_(instance) {}
+      ${hasteModuleName}CxxSpecJSI(std::move(jsInvoker)), instance_(instance) {
+${moduleEventEmitters.map(e => e.registerEventEmitter).join('\n')}
+    }
 
     ${indent(moduleProperties.join('\n'), 4)}
 
   private:
+    friend class ${hasteModuleName}CxxSpec;
     T *instance_;
   };
 
@@ -161,6 +172,10 @@ function translatePrimitiveJSTypeToCpp(
     case 'VoidTypeAnnotation':
       return 'void';
     case 'StringTypeAnnotation':
+      return wrapOptional('jsi::String', isRequired);
+    case 'StringLiteralTypeAnnotation':
+      return wrapOptional('jsi::String', isRequired);
+    case 'StringLiteralUnionTypeAnnotation':
       return wrapOptional('jsi::String', isRequired);
     case 'NumberTypeAnnotation':
       return wrapOptional('double', isRequired);
@@ -400,7 +415,7 @@ function generateEnum(
   const nativeEnumMemberType: NativeEnumMemberValueType =
     memberType === 'StringTypeAnnotation' ? 'std::string' : 'int32_t';
 
-  const getMemberValueAppearance = (value: string) =>
+  const getMemberValueAppearance = (value: string | number) =>
     memberType === 'StringTypeAnnotation' ? `"${value}"` : `${value}`;
 
   const fromCases =
@@ -429,7 +444,7 @@ function generateEnum(
 
   return EnumTemplate({
     enumName,
-    values: members.map(member => member.name).join(', '),
+    values: members.map(member => toSafeCppString(member.name)).join(', '),
     fromCases,
     toCases,
     nativeEnumMemberType,
@@ -460,7 +475,7 @@ function translatePropertyToCpp(
   resolveAlias: AliasResolver,
   enumMap: NativeModuleEnumMap,
   abstract: boolean = false,
-) {
+): string {
   const [propTypeAnnotation] =
     unwrapNullable<NativeModuleFunctionTypeAnnotation>(prop.typeAnnotation);
 
@@ -511,6 +526,69 @@ function translatePropertyToCpp(
 }`;
 }
 
+type EventEmitterCpp = {
+  isVoidTypeAnnotation: boolean,
+  templateName: string,
+  registerEventEmitter: string,
+  emitFunction: string,
+};
+
+function translateEventEmitterToCpp(
+  moduleName: string,
+  eventEmitter: NativeModuleEventEmitterShape,
+  resolveAlias: AliasResolver,
+  enumMap: NativeModuleEnumMap,
+): EventEmitterCpp {
+  const isVoidTypeAnnotation =
+    eventEmitter.typeAnnotation.typeAnnotation.type === 'VoidTypeAnnotation';
+  const templateName = `${toPascalCase(eventEmitter.name)}Type`;
+  const jsiType = translatePrimitiveJSTypeToCpp(
+    moduleName,
+    null,
+    eventEmitter.typeAnnotation.typeAnnotation,
+    false,
+    typeName =>
+      `Unsupported type for eventEmitter "${eventEmitter.name}" in ${moduleName}. Found: ${typeName}`,
+    resolveAlias,
+    enumMap,
+  );
+  const isArray = jsiType === 'jsi::Array';
+  return {
+    isVoidTypeAnnotation: isVoidTypeAnnotation,
+    templateName: isVoidTypeAnnotation ? `/*${templateName}*/` : templateName,
+    registerEventEmitter: `      eventEmitterMap_["${
+      eventEmitter.name
+    }"] = std::make_shared<AsyncEventEmitter<${
+      isVoidTypeAnnotation ? '' : 'jsi::Value'
+    }>>();`,
+    emitFunction: `
+  ${
+    isVoidTypeAnnotation ? '' : `template <typename ${templateName}> `
+  }void emit${toPascalCase(eventEmitter.name)}(${
+      isVoidTypeAnnotation
+        ? ''
+        : `${isArray ? `std::vector<${templateName}>` : templateName} value`
+    }) {${
+      isVoidTypeAnnotation
+        ? ''
+        : `
+    static_assert(bridging::supportsFromJs<${
+      isArray ? `std::vector<${templateName}>` : templateName
+    }, ${jsiType}>, "value cannnot be converted to ${jsiType}");`
+    }
+    static_cast<AsyncEventEmitter<${
+      isVoidTypeAnnotation ? '' : 'jsi::Value'
+    }>&>(*delegate_.eventEmitterMap_["${eventEmitter.name}"]).emit(${
+      isVoidTypeAnnotation
+        ? ''
+        : `[jsInvoker = jsInvoker_, eventValue = value](jsi::Runtime& rt) -> jsi::Value {
+      return bridging::toJs(rt, eventValue, jsInvoker);
+    }`
+    });
+  }`,
+  };
+}
+
 module.exports = {
   generate(
     libraryName: string,
@@ -522,12 +600,8 @@ module.exports = {
     const nativeModules = getModules(schema);
 
     const modules = Object.keys(nativeModules).flatMap(hasteModuleName => {
-      const {
-        aliasMap,
-        enumMap,
-        spec: {properties},
-        moduleName,
-      } = nativeModules[hasteModuleName];
+      const {aliasMap, enumMap, spec, moduleName} =
+        nativeModules[hasteModuleName];
       const resolveAlias = createAliasResolver(aliasMap);
       const structs = createStructsString(
         hasteModuleName,
@@ -540,7 +614,7 @@ module.exports = {
       return [
         ModuleClassDeclarationTemplate({
           hasteModuleName,
-          moduleProperties: properties.map(prop =>
+          moduleProperties: spec.methods.map(prop =>
             translatePropertyToCpp(
               hasteModuleName,
               prop,
@@ -555,7 +629,15 @@ module.exports = {
         ModuleSpecClassDeclarationTemplate({
           hasteModuleName,
           moduleName,
-          moduleProperties: properties.map(prop =>
+          moduleEventEmitters: spec.eventEmitters.map(eventEmitter =>
+            translateEventEmitterToCpp(
+              moduleName,
+              eventEmitter,
+              resolveAlias,
+              enumMap,
+            ),
+          ),
+          moduleProperties: spec.methods.map(prop =>
             translatePropertyToCpp(
               hasteModuleName,
               prop,

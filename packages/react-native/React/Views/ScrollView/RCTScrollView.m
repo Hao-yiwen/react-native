@@ -364,7 +364,7 @@ static inline UIViewAnimationOptions animationOptionsWithCurve(UIViewAnimationCu
                       options:animationOptionsWithCurve(curve)
                    animations:^{
                      self->_scrollView.contentInset = newEdgeInsets;
-                     self->_scrollView.scrollIndicatorInsets = newEdgeInsets;
+                     self->_scrollView.verticalScrollIndicatorInsets = newEdgeInsets;
                      [self scrollToOffset:newContentOffset animated:NO];
                    }
                    completion:nil];
@@ -848,6 +848,26 @@ RCT_SCROLL_EVENT_HANDLER(scrollViewDidScrollToTop, onScrollToTop)
   RCT_FORWARD_SCROLL_EVENT(scrollViewDidEndZooming : scrollView withView : view atScale : scale);
 }
 
+- (void)didMoveToWindow
+{
+  [super didMoveToWindow];
+  if (self.window == nil) {
+    // Check if the ScrollView was in motion
+    if (_scrollView.isDecelerating || !_scrollView.isTracking) {
+      // Trigger the onMomentumScrollEnd event manually
+      RCT_SEND_SCROLL_EVENT(onMomentumScrollEnd, nil);
+      // We can't use the RCT_FORWARD_SCROLL_EVENT here beacuse the `_cmd` parameter passed
+      // to `respondsToSelector` is the current method - so it will be `didMoveToWindow` - and not
+      // `scrollViewDidEndDecelerating` that is passed.
+      for (NSObject<UIScrollViewDelegate> *scrollViewListener in _scrollListeners) {
+        if ([scrollViewListener respondsToSelector:@selector(scrollViewDidEndDecelerating:)]) {
+          [scrollViewListener scrollViewDidEndDecelerating:_scrollView];
+        }
+      }
+    }
+  }
+}
+
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView
 {
   // Fire a final scroll event
@@ -1034,7 +1054,6 @@ RCT_SET_AND_PRESERVE_OFFSET(setScrollsToTop, scrollsToTop, BOOL)
 RCT_SET_AND_PRESERVE_OFFSET(setShowsHorizontalScrollIndicator, showsHorizontalScrollIndicator, BOOL)
 RCT_SET_AND_PRESERVE_OFFSET(setShowsVerticalScrollIndicator, showsVerticalScrollIndicator, BOOL)
 RCT_SET_AND_PRESERVE_OFFSET(setZoomScale, zoomScale, CGFloat);
-RCT_SET_AND_PRESERVE_OFFSET(setScrollIndicatorInsets, scrollIndicatorInsets, UIEdgeInsets);
 
 - (void)setAutomaticallyAdjustsScrollIndicatorInsets:(BOOL)automaticallyAdjusts API_AVAILABLE(ios(13.0))
 {

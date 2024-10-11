@@ -12,6 +12,7 @@
 #import <react/renderer/textlayoutmanager/TextLayoutManager.h>
 
 #import <React/RCTBackedTextInputViewProtocol.h>
+#import <React/RCTScrollViewComponentView.h>
 #import <React/RCTUITextField.h>
 #import <React/RCTUITextView.h>
 #import <React/RCTUtils.h>
@@ -22,10 +23,15 @@
 
 #import "RCTFabricComponentsPlugins.h"
 
+/** Native iOS text field bottom keyboard offset amount */
+static const CGFloat kSingleLineKeyboardBottomOffset = 15.0;
+
 using namespace facebook::react;
 
 @interface RCTTextInputComponentView () <RCTBackedTextInputDelegate, RCTTextInputViewProtocol>
 @end
+
+static NSSet<NSNumber *> *returnKeyTypesSet;
 
 @implementation RCTTextInputComponentView {
   TextInputShadowNode::ConcreteState::Shared _state;
@@ -70,7 +76,9 @@ using namespace facebook::react;
     _ignoreNextTextInputCall = NO;
     _comingFromJS = NO;
     _didMoveToWindow = NO;
+
     [self addSubview:_backedTextInputView];
+    [self initializeReturnKeyType];
   }
 
   return self;
@@ -86,8 +94,34 @@ using namespace facebook::react;
       [_backedTextInputView becomeFirstResponder];
     }
     _didMoveToWindow = YES;
+    [self initializeReturnKeyType];
   }
+
   [self _restoreTextSelection];
+}
+
+- (void)reactUpdateResponderOffsetForScrollView:(RCTScrollViewComponentView *)scrollView
+{
+  if (![self isDescendantOfView:scrollView.scrollView] || !_backedTextInputView.isFirstResponder) {
+    // View is outside scroll view or it's not a first responder.
+    return;
+  }
+
+  UITextRange *selectedTextRange = _backedTextInputView.selectedTextRange;
+  UITextSelectionRect *selection = [_backedTextInputView selectionRectsForRange:selectedTextRange].firstObject;
+  CGRect focusRect;
+  if (selection == nil) {
+    // No active selection or caret - fallback to entire input frame
+    focusRect = self.bounds;
+  } else {
+    // Focus on text selection frame
+    focusRect = selection.rect;
+    BOOL isMultiline = [_backedTextInputView isKindOfClass:[UITextView class]];
+    if (!isMultiline) {
+      focusRect.size.height += kSingleLineKeyboardBottomOffset;
+    }
+  }
+  scrollView.firstResponderFocus = [self convertRect:focusRect toView:nil];
 }
 
 #pragma mark - RCTViewComponentView overrides
@@ -185,6 +219,10 @@ using namespace facebook::react;
         RCTUITextSmartInsertDeleteTypeFromOptionalBool(newTextInputProps.traits.smartInsertDelete);
   }
 
+  if (newTextInputProps.traits.showSoftInputOnFocus != oldTextInputProps.traits.showSoftInputOnFocus) {
+    [self _setShowSoftInputOnFocus:newTextInputProps.traits.showSoftInputOnFocus];
+  }
+
   // Traits `blurOnSubmit`, `clearTextOnFocus`, and `selectTextOnFocus` were omitted intentionally here
   // because they are being checked on-demand.
 
@@ -274,18 +312,6 @@ using namespace facebook::react;
 
 - (void)textInputDidBeginEditing
 {
-  const auto &props = static_cast<const TextInputProps &>(*_props);
-
-  if (props.traits.clearTextOnFocus) {
-    _backedTextInputView.attributedText = nil;
-    [self textInputDidChange];
-  }
-
-  if (props.traits.selectTextOnFocus) {
-    [_backedTextInputView selectAll:nil];
-    [self textInputDidChangeSelection];
-  }
-
   if (_eventEmitter) {
     static_cast<const TextInputEventEmitter &>(*_eventEmitter).onFocus([self _textInputMetrics]);
   }
@@ -425,6 +451,18 @@ using namespace facebook::react;
 - (void)focus
 {
   [_backedTextInputView becomeFirstResponder];
+
+  const auto &props = static_cast<const TextInputProps &>(*_props);
+
+  if (props.traits.clearTextOnFocus) {
+    _backedTextInputView.attributedText = nil;
+    [self textInputDidChange];
+  }
+
+  if (props.traits.selectTextOnFocus) {
+    [_backedTextInputView selectAll:nil];
+    [self textInputDidChangeSelection];
+  }
 }
 
 - (void)blur
@@ -462,6 +500,48 @@ using namespace facebook::react;
 
 #pragma mark - Default input accessory view
 
+- (NSString *)returnKeyTypeToString:(UIReturnKeyType)returnKeyType
+{
+  switch (returnKeyType) {
+    case UIReturnKeyGo:
+      return @"Go";
+    case UIReturnKeyNext:
+      return @"Next";
+    case UIReturnKeySearch:
+      return @"Search";
+    case UIReturnKeySend:
+      return @"Send";
+    case UIReturnKeyYahoo:
+      return @"Yahoo";
+    case UIReturnKeyGoogle:
+      return @"Google";
+    case UIReturnKeyRoute:
+      return @"Route";
+    case UIReturnKeyJoin:
+      return @"Join";
+    case UIReturnKeyEmergencyCall:
+      return @"Emergency Call";
+    default:
+      return @"Done";
+  }
+}
+
+- (void)initializeReturnKeyType
+{
+  returnKeyTypesSet = [NSSet setWithObjects:@(UIReturnKeyDone),
+                                            @(UIReturnKeyGo),
+                                            @(UIReturnKeyNext),
+                                            @(UIReturnKeySearch),
+                                            @(UIReturnKeySend),
+                                            @(UIReturnKeyYahoo),
+                                            @(UIReturnKeyGoogle),
+                                            @(UIReturnKeyRoute),
+                                            @(UIReturnKeyJoin),
+                                            @(UIReturnKeyRoute),
+                                            @(UIReturnKeyEmergencyCall),
+                                            nil];
+}
+
 - (void)setDefaultInputAccessoryView
 {
   // InputAccessoryView component sets the inputAccessoryView when inputAccessoryViewID exists
@@ -473,27 +553,32 @@ using namespace facebook::react;
   }
 
   UIKeyboardType keyboardType = _backedTextInputView.keyboardType;
+  UIReturnKeyType returnKeyType = _backedTextInputView.returnKeyType;
 
-  // These keyboard types (all are number pads) don't have a "Done" button by default,
+  BOOL containsKeyType = [returnKeyTypesSet containsObject:@(returnKeyType)];
+
+  // These keyboard types (all are number pads) don't have a "returnKey" button by default,
   // so we create an `inputAccessoryView` with this button for them.
   BOOL shouldHaveInputAccessoryView =
       (keyboardType == UIKeyboardTypeNumberPad || keyboardType == UIKeyboardTypePhonePad ||
        keyboardType == UIKeyboardTypeDecimalPad || keyboardType == UIKeyboardTypeASCIICapableNumberPad) &&
-      _backedTextInputView.returnKeyType == UIReturnKeyDone;
+      containsKeyType;
 
   if ((_backedTextInputView.inputAccessoryView != nil) == shouldHaveInputAccessoryView) {
     return;
   }
 
   if (shouldHaveInputAccessoryView) {
+    NSString *buttonLabel = [self returnKeyTypeToString:returnKeyType];
+
     UIToolbar *toolbarView = [UIToolbar new];
     [toolbarView sizeToFit];
     UIBarButtonItem *flexibleSpace =
         [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
-    UIBarButtonItem *doneButton =
-        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone
-                                                      target:self
-                                                      action:@selector(handleInputAccessoryDoneButton)];
+    UIBarButtonItem *doneButton = [[UIBarButtonItem alloc] initWithTitle:buttonLabel
+                                                                   style:UIBarButtonItemStylePlain
+                                                                  target:self
+                                                                  action:@selector(handleInputAccessoryDoneButton)];
     toolbarView.items = @[ flexibleSpace, doneButton ];
     _backedTextInputView.inputAccessoryView = toolbarView;
   } else {
@@ -600,6 +685,23 @@ using namespace facebook::react;
   RCTCopyBackedTextInput(_backedTextInputView, backedTextInputView);
   _backedTextInputView = backedTextInputView;
   [self addSubview:_backedTextInputView];
+}
+
+- (void)_setShowSoftInputOnFocus:(BOOL)showSoftInputOnFocus
+{
+  if (showSoftInputOnFocus) {
+    // Resets to default keyboard.
+    _backedTextInputView.inputView = nil;
+
+    // Without the call to reloadInputViews, the keyboard will not change until the textInput field (the first
+    // responder) loses and regains focus.
+    if (_backedTextInputView.isFirstResponder) {
+      [_backedTextInputView reloadInputViews];
+    }
+  } else {
+    // Hides keyboard, but keeps blinking cursor.
+    _backedTextInputView.inputView = [UIView new];
+  }
 }
 
 - (BOOL)_textOf:(NSAttributedString *)newText equals:(NSAttributedString *)oldText

@@ -76,9 +76,6 @@ const RCTTextInputViewConfig = {
     },
   },
   directEventTypes: {
-    topTextInput: {
-      registrationName: 'onTextInput',
-    },
     topScroll: {
       registrationName: 'onScroll',
     },
@@ -88,8 +85,15 @@ const RCTTextInputViewConfig = {
     topContentSizeChange: {
       registrationName: 'onContentSizeChange',
     },
+    topChangeSync: {
+      registrationName: 'onChangeSync',
+    },
+    topKeyPressSync: {
+      registrationName: 'onKeyPressSync',
+    },
   },
   validAttributes: {
+    dynamicTypeRamp: true,
     fontSize: true,
     fontWeight: true,
     fontVariant: true,
@@ -147,13 +151,15 @@ const RCTTextInputViewConfig = {
     showSoftInputOnFocus: true,
     autoFocus: true,
     lineBreakStrategyIOS: true,
+    lineBreakModeIOS: true,
     smartInsertDelete: true,
     ...ConditionallyIgnoredEventHandlers({
       onChange: true,
       onSelectionChange: true,
       onContentSizeChange: true,
       onScroll: true,
-      onTextInput: true,
+      onChangeSync: true,
+      onKeyPressSync: true,
     }),
   },
 };

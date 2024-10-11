@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+#include <folly/executors/QueuedImmediateExecutor.h>
 #include "JsiIntegrationTest.h"
 
 #include "engines/JsiIntegrationTestHermesEngineAdapter.h"
@@ -44,12 +45,13 @@ struct Params {
 /**
  * A test fixture for the Console API.
  */
-class ConsoleApiTest
-    : public JsiIntegrationPortableTest<JsiIntegrationTestHermesEngineAdapter>,
-      public WithParamInterface<Params> {
+class ConsoleApiTest : public JsiIntegrationPortableTestBase<
+                           JsiIntegrationTestHermesEngineAdapter,
+                           folly::QueuedImmediateExecutor>,
+                       public WithParamInterface<Params> {
  protected:
   void SetUp() override {
-    JsiIntegrationPortableTest::SetUp();
+    JsiIntegrationPortableTestBase::SetUp();
     connect();
     EXPECT_CALL(
         fromPage(),
@@ -81,7 +83,7 @@ class ConsoleApiTest
     if (!GetParam().runtimeEnabledAtStart) {
       enableRuntimeDomain();
     }
-    JsiIntegrationPortableTest::TearDown();
+    JsiIntegrationPortableTestBase::TearDown();
   }
 
   /**
@@ -277,6 +279,60 @@ TEST_P(ConsoleApiTest, testConsoleError) {
                 "value": "uh oh"
               }])"_json)));
   eval("console.error('uh oh');");
+}
+
+TEST_P(ConsoleApiTest, testConsoleLogWithErrorObject) {
+  InSequence s;
+  expectConsoleApiCall(AllOf(
+      AtJsonPtr("/type", "log"),
+      AtJsonPtr("/args/0/type", "object"),
+      AtJsonPtr("/args/0/subtype", "error"),
+      AtJsonPtr("/args/0/className", "Error"),
+      AtJsonPtr(
+          "/args/0/description",
+          "Error: wut\n"
+          "    at secondFunction (<eval>:6:28)\n"
+          "    at firstFunction (<eval>:3:21)\n"
+          "    at anonymous (<eval>:8:18)\n"
+          "    at global (<eval>:9:5)")));
+  eval(R"((() => {
+    function firstFunction() {
+      secondFunction();
+    }
+    function secondFunction() {
+      console.log(new Error('wut'));
+    }
+    firstFunction();
+  })())");
+}
+
+TEST_P(ConsoleApiTest, testConsoleLogWithArrayOfErrors) {
+  InSequence s;
+  expectConsoleApiCallImmediate(AllOf(
+      AtJsonPtr("/type", "log"),
+      AtJsonPtr("/args/0/type", "object"),
+      AtJsonPtr("/args/0/subtype", "array"),
+      AtJsonPtr("/args/0/description", "Array(2)"),
+      AtJsonPtr("/args/0/preview/description", "Array(2)"),
+      AtJsonPtr("/args/0/preview/type", "object"),
+      AtJsonPtr("/args/0/preview/subtype", "array"),
+      AtJsonPtr("/args/0/preview/properties/0/type", "object"),
+      AtJsonPtr("/args/0/preview/properties/0/subtype", "error"),
+      AtJsonPtr(
+          "/args/0/preview/properties/0/value",
+          "Error: wut\n"
+          "    at typicallyUrlsAreLongAndWillHitTheAbbreviationLimit (<eval>:6:29)\n"
+          "    at reallyLon…")));
+  expectConsoleApiCallBuffered(AllOf(AtJsonPtr("/type", "log")));
+  eval(R"((() => {
+    function reallyLongFunctionNameToAssertMaxLengthOfAbbreviatedString() {
+      typicallyUrlsAreLongAndWillHitTheAbbreviationLimit();
+    }
+    function typicallyUrlsAreLongAndWillHitTheAbbreviationLimit() {
+      console.log([new Error('wut'), new TypeError('why')]);
+    }
+    reallyLongFunctionNameToAssertMaxLengthOfAbbreviatedString();
+  })())");
 }
 
 TEST_P(ConsoleApiTest, testConsoleWarn) {

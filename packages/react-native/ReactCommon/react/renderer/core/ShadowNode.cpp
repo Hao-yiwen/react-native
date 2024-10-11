@@ -78,7 +78,6 @@ ShadowNode::ShadowNode(
   react_native_assert(children_);
 
   traits_.set(ShadowNodeTraits::Trait::ChildrenAreShared);
-  traits_.set(fragment.traits.get());
 
   for (const auto& child : *children_) {
     child->family_->setParent(family_);
@@ -110,9 +109,7 @@ ShadowNode::ShadowNode(
 
   // State could have been progressed above by checking
   // `sourceShadowNode.getMostRecentState()`.
-  traits_.unset(ShadowNodeTraits::Trait::ClonedByNativeStateUpdate);
   traits_.set(ShadowNodeTraits::Trait::ChildrenAreShared);
-  traits_.set(fragment.traits.get());
 
   if (fragment.children) {
     for (const auto& child : *children_) {
@@ -136,8 +133,7 @@ ShadowNode::Unshared ShadowNode::clone(
           *this,
           {.props = props,
            .children = fragment.children,
-           .state = fragment.state,
-           .traits = fragment.traits});
+           .state = fragment.state});
       return clonedNode;
     } else {
       // TODO: We might need to merge fragment.priops with
@@ -282,6 +278,7 @@ void ShadowNode::cloneChildrenIfShared() {
 void ShadowNode::setMounted(bool mounted) const {
   if (mounted) {
     family_->setMostRecentState(getState());
+    family_->setMounted();
     hasBeenMounted_ = mounted;
   }
 
@@ -292,21 +289,29 @@ bool ShadowNode::getHasBeenPromoted() const {
   return hasBeenMounted_.load();
 }
 
-bool ShadowNode::progressStateIfNecessary() {
-  auto hasBeenPromoted = hasBeenMounted_.load();
-  if (!hasBeenPromoted && state_) {
-    ensureUnsealed();
-    auto mostRecentState = family_->getMostRecentStateIfObsolete(*state_);
-    if (mostRecentState) {
-      state_ = mostRecentState;
-      const auto& componentDescriptor = family_->componentDescriptor_;
-      // Must call ComponentDescriptor::adopt to trigger any side effect
-      // state may have. E.g. adjusting padding.
-      componentDescriptor.adopt(*this);
-      return true;
-    }
+void ShadowNode::setRuntimeShadowNodeReference(
+    const std::shared_ptr<ShadowNodeWrapper>& runtimeShadowNodeReference)
+    const {
+  runtimeShadowNodeReference_ = runtimeShadowNodeReference;
+}
+
+void ShadowNode::transferRuntimeShadowNodeReference(
+    const Shared& destinationShadowNode) const {
+  destinationShadowNode->runtimeShadowNodeReference_ =
+      runtimeShadowNodeReference_;
+
+  if (auto reference = runtimeShadowNodeReference_.lock()) {
+    reference->shadowNode = destinationShadowNode;
   }
-  return false;
+}
+
+void ShadowNode::transferRuntimeShadowNodeReference(
+    const Shared& destinationShadowNode,
+    const ShadowNodeFragment& fragment) const {
+  if (fragment.runtimeShadowNodeReference &&
+      ReactNativeFeatureFlags::useRuntimeShadowNodeReferenceUpdate()) {
+    transferRuntimeShadowNodeReference(destinationShadowNode);
+  }
 }
 
 const ShadowNodeFamily& ShadowNode::getFamily() const {
@@ -316,8 +321,7 @@ const ShadowNodeFamily& ShadowNode::getFamily() const {
 ShadowNode::Unshared ShadowNode::cloneTree(
     const ShadowNodeFamily& shadowNodeFamily,
     const std::function<ShadowNode::Unshared(const ShadowNode& oldShadowNode)>&
-        callback,
-    ShadowNodeTraits traits) const {
+        callback) const {
   auto ancestors = shadowNodeFamily.getAncestors(*this);
 
   if (ancestors.empty()) {
@@ -345,8 +349,7 @@ ShadowNode::Unshared ShadowNode::cloneTree(
     children[childIndex] = childNode;
 
     childNode = parentNode.clone(
-        {.children = std::make_shared<ShadowNode::ListOfShared>(children),
-         .traits = traits});
+        {.children = std::make_shared<ShadowNode::ListOfShared>(children)});
   }
 
   return std::const_pointer_cast<ShadowNode>(childNode);
@@ -385,5 +388,11 @@ SharedDebugStringConvertibleList ShadowNode::getDebugProps() const {
           debugStringConvertibleItem("tag", folly::to<std::string>(getTag()))};
 }
 #endif
+
+// Explicitly define destructors here, as they have to exist in order to act as
+// a "key function" for the ShadowNodeWrapper class -- this allows for RTTI to
+// work properly across dynamic library boundaries (i.e. dynamic_cast that is
+// used by getNativeState method)
+ShadowNodeWrapper::~ShadowNodeWrapper() = default;
 
 } // namespace facebook::react
